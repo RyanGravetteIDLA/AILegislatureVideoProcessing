@@ -29,8 +29,8 @@ Perfect for researchers, journalists, archivists, and anyone interested in prese
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/RyanGravetteIDLA/PullLegislature2.git
-cd PullLegislature2
+git clone https://github.com/RyanGravetteIDLA/AILegislatureVideoProcessing.git
+cd AILegislatureVideoProcessing
 ```
 
 2. Install the required dependencies:

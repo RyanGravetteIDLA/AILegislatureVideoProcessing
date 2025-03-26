@@ -2,8 +2,8 @@
 # Script to configure GitHub repository with deploy key for automated processes
 
 # Replace these variables with your actual values
-GITHUB_USERNAME="your-github-username"
-REPO_NAME="PullLegislature2"
+GITHUB_USERNAME="RyanGravetteIDLA"
+REPO_NAME="AILegislatureVideoProcessing"
 
 # Generate a deploy key for automation
 if [ ! -f deploy_key ]; then
