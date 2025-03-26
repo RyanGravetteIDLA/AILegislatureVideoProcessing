@@ -147,7 +147,8 @@ def push_to_github(config, branch='main', force=False):
     logger.info(f"Pushing to GitHub repository...")
     output = run_command(command)
     
-    if output and ("Everything up-to-date" in output or "main -> main" in output):
+    # Consider the push successful if there was no error from the command
+    if output is not None:
         logger.info(f"Successfully pushed to GitHub.")
         return True
     else:
