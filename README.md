@@ -1,6 +1,15 @@
 # Idaho Legislature Media Downloader
 
-A Python tool for downloading legislative session videos from the Idaho Legislature website, converting them to audio, and transcribing the content.
+A comprehensive Python toolset for downloading, processing, and archiving Idaho legislative session videos. This project allows you to:
+
+1. **Download legislative session videos** from the Idaho Legislature website
+2. **Convert videos to audio** for easier processing 
+3. **Transcribe audio to text** using Google's Gemini AI models
+4. **Store all media** (videos, audio, transcripts) on Google Drive
+5. **Organize content** by year, committee, and session
+6. **Automate the workflow** with scheduled tasks
+
+Perfect for researchers, journalists, archivists, and anyone interested in preserving and analyzing legislative proceedings.
 
 ## Features
 
@@ -20,8 +29,8 @@ A Python tool for downloading legislative session videos from the Idaho Legislat
 
 1. Clone this repository:
 ```bash
-git clone <repository-url>
-cd pullLegislature
+git clone https://github.com/RyanGravetteIDLA/PullLegislature2.git
+cd PullLegislature2
 ```
 
 2. Install the required dependencies:
@@ -50,13 +59,18 @@ sudo apt-get install ffmpeg
      python scripts/manage_api_keys.py store
      ```
 
-5. Set up Google Drive API for transcript uploads (optional):
+5. Set up Google Drive API for cloud storage (recommended):
    - Create a project in the [Google Cloud Console](https://console.cloud.google.com/)
    - Enable the Google Drive API
    - Create a service account with Drive access permissions
    - Create a key for the service account (JSON format)
    - Download the service account key and save as `data/service_account.json`
-   - Share the destination Google Drive folder with the service account email
+   - Create a folder in your Google Drive to store legislative media
+   - Share the Google Drive folder with the service account email address
+   - Run the verification tool to test your setup:
+     ```bash
+     python scripts/manage_drive_service.py verify
+     ```
 
 ## Usage
 
@@ -159,18 +173,24 @@ python scripts/download_year_category.py 2025 "House Chambers" --limit 5
 
 ## Project Structure
 
-- `src/` - Source code for the downloader
-- `scripts/` - Command-line scripts
-- `data/` - Default directory for downloads and logs
+- `src/` - Core source code modules:
+  - `downloader.py` - Video downloading engine
+  - `transcript_db.py` - Database for tracking transcript processing
+  - `drive_storage.py` - Google Drive integration
+- `scripts/` - Command-line tools for various functions
+- `data/` - Data storage directory:
   - `data/downloads/` - Downloaded videos and audio files
-  - `data/logs/` - Log files
+  - `data/logs/` - Processing logs
   - `data/db/` - SQLite database for transcript tracking
+  - `data/service_account.json` - Google service account credentials (you create this)
 
 ## Workflow
 
+The project offers multiple workflow options depending on your needs, including interactive processes, manual steps, and automatic cloud storage.
+
 ### Interactive All-in-One Process
 
-Use the interactive script to handle the complete workflow:
+Use the interactive script to handle the download and transcription workflow:
 
 ```bash
 python scripts/process_committee.py
@@ -188,6 +208,27 @@ You can also run with specific options:
 python scripts/process_committee.py --year 2025 --category "House Chambers" --limit 5
 ```
 
+### Complete Workflow with Cloud Storage
+
+For a complete end-to-end workflow including cloud storage:
+
+1. Download and process videos/audio/transcripts:
+   ```bash
+   python scripts/process_committee.py --year 2025 --category "House Chambers"
+   ```
+
+2. Scan and update the transcript database:
+   ```bash
+   python scripts/scan_transcripts.py
+   ```
+
+3. Upload all media to Google Drive:
+   ```bash
+   python scripts/daily_upload.py
+   ```
+
+4. Access your files in Google Drive organized by media type, year, category, and session.
+
 ### Transcript Management and Upload
 
 For managing transcripts and uploading to Google Drive:
@@ -197,7 +238,7 @@ For managing transcripts and uploading to Google Drive:
 python scripts/scan_transcripts.py
 
 # Upload transcripts to Google Drive
-python scripts/upload_to_drive.py
+python scripts/upload_media_to_drive.py --media-type transcript
 
 # All-in-one process: scan, update DB, and upload
 python scripts/process_transcripts.py

@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 # Import local modules
 from scripts.scan_transcripts import scan_transcripts, generate_report
-from scripts.upload_to_drive import process_uploads
+from scripts.upload_media_to_drive import find_media_files, upload_media_files
 
 # Configure logging
 os.makedirs(os.path.join('data', 'logs'), exist_ok=True)
@@ -52,7 +52,16 @@ def run_full_process(upload_limit=None, retry_errors=False):
         
         # Step 2: Upload transcripts to Google Drive
         logger.info("Step 2: Uploading transcripts to Google Drive...")
-        upload_success = process_uploads(limit=upload_limit)
+        transcript_files = find_media_files(media_type='transcript')
+        if upload_limit:
+            transcript_files = transcript_files[:upload_limit]
+        
+        upload_stats = upload_media_files(
+            transcript_files,
+            media_type='transcript',
+            skip_existing=True
+        )
+        upload_success = upload_stats['success'] > 0 or upload_stats['skipped'] > 0
         
         # Step 3: Generate final report
         logger.info("Step 3: Generating final report...")
