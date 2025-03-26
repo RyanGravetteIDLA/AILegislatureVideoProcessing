@@ -1,0 +1,15 @@
+# GitHub Configuration (SAMPLE)
+# Copy to .github-config and update with your values
+
+# GitHub account information
+GITHUB_USERNAME="RyanGravetteIDLA"
+REPO_NAME="AILegislatureVideoProcessing"
+
+# GitHub authentication
+# Generate a token at https://github.com/settings/tokens
+# with 'repo' permission
+GITHUB_TOKEN=""
+
+# Repository settings
+REPO_DESCRIPTION="Tool for downloading, processing, and archiving Idaho legislative session videos"
+REPO_VISIBILITY="public"  # "public" or "private"

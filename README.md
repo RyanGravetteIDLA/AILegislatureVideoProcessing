@@ -300,6 +300,28 @@ If you prefer to run the process manually step-by-step:
 7. **Upload Media**: Use `upload_media_to_drive.py` to upload all media to Google Drive
 8. **Review**: Access your media files organized in Google Drive
 
+### GitHub Repository Management
+
+The project includes tools for managing the GitHub repository:
+
+```bash
+# Initialize GitHub setup (create config from sample)
+cp .github-config.sample .github-config
+# Edit .github-config with your GitHub username and token
+
+# Create and configure the repository
+python scripts/manage_github.py setup --create
+
+# Push changes to GitHub
+python scripts/manage_github.py push
+
+# Force push to GitHub (use with caution)
+python scripts/manage_github.py push --force
+
+# Push to a different branch
+python scripts/manage_github.py push --branch feature-branch
+```
+
 ### Scheduling Automatic Uploads
 
 You can set up daily automated uploads using cron (Linux/Mac) or Task Scheduler (Windows):
@@ -315,7 +337,7 @@ crontab -e
 Add a line like this to run the upload daily at 2 AM:
 
 ```
-0 2 * * * cd /path/to/PullLegislature2 && python scripts/daily_upload.py --recent-only --days 1 >> data/logs/cron_upload.log 2>&1
+0 2 * * * cd /path/to/AILegislatureVideoProcessing && python scripts/daily_upload.py --recent-only --days 1 >> data/logs/cron_upload.log 2>&1
 ```
 
 #### Using Task Scheduler (Windows)
@@ -326,7 +348,7 @@ Add a line like this to run the upload daily at 2 AM:
 4. Action: Start a program
 5. Program/script: `python`
 6. Add arguments: `scripts/daily_upload.py --recent-only --days 1`
-7. Start in: `C:\path\to\PullLegislature2`
+7. Start in: `C:\path\to\AILegislatureVideoProcessing`
 
 ## License
 
