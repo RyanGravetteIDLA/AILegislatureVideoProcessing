@@ -16,6 +16,7 @@ Perfect for researchers, journalists, archivists, and anyone interested in prese
 
 - Downloads videos from specific sessions by date
 - Bulk downloads all sessions for a year and category
+- Interactive workflow with option to process a specific day only
 - Converts videos to audio format (requires ffmpeg)
 - Transcribes audio to text using Google's Gemini API
 - Saves metadata for each session
@@ -193,6 +194,66 @@ python scripts/download_year_category.py 2025 "House Chambers" --limit 5
   - `frontend/src/stores/` - Pinia state stores
   - `frontend/src/router/` - Vue Router configuration
 
+## Quick Start Guide
+
+### 1. Download, Convert, and Transcribe Videos
+
+The easiest way to start downloading, converting, and transcribing videos is to use the interactive process_committee.py script:
+
+```bash
+python scripts/process_committee.py
+```
+
+This script will:
+- Show you available years and categories from the Idaho Legislature website
+- Let you select which ones you want to download
+- Ask if you want to process a specific day only (NEW)
+- If yes, show available dates to choose from (NEW)
+- Download the videos
+- Convert them to audio
+- Transcribe the audio files using Google's Gemini API
+
+You can also run it with specific options:
+```bash
+# Process all videos in a category
+python scripts/process_committee.py --year 2025 --category "House Chambers" --limit 5 --yes
+
+# Process a specific day only
+python scripts/process_committee.py --year 2025 --category "House Chambers" --day "January 8" --yes
+```
+
+### 2. Start the Web Interface
+
+After processing videos, start the API server and web interface to browse your media:
+
+```bash
+# Start both API server and web interface
+./start_local.sh
+
+# The web interface will be available at:
+# - Frontend: http://localhost:5173
+# - API: http://localhost:5000/api
+# - Files: http://localhost:5001/files
+```
+
+### Starting Services Individually
+
+You can also start each service separately:
+
+```bash
+# Start just the API server
+cd src
+python server.py --api-only
+
+# Start just the file server
+cd src
+python server.py --file-only
+
+# Start the frontend development server
+cd frontend
+npm run dev
+```
+
 ## Workflow
 
 The project offers multiple workflow options depending on your needs, including interactive processes, manual steps, and automatic cloud storage.
@@ -214,7 +275,11 @@ This script will:
 
 You can also run with specific options:
 ```bash
+# Process all videos in a category
 python scripts/process_committee.py --year 2025 --category "House Chambers" --limit 5
+
+# Process a specific day only (new feature)
+python scripts/process_committee.py --year 2025 --category "House Chambers" --day "January 8"
 ```
 
 ### Complete Workflow with Cloud Storage
@@ -223,7 +288,11 @@ For a complete end-to-end workflow including cloud storage:
 
 1. Download and process videos/audio/transcripts:
    ```bash
+   # Process all videos in a category
    python scripts/process_committee.py --year 2025 --category "House Chambers"
+   
+   # Or process a specific day only
+   python scripts/process_committee.py --year 2025 --category "House Chambers" --day "January 8"
    ```
 
 2. Scan and update the transcript database:
@@ -236,7 +305,14 @@ For a complete end-to-end workflow including cloud storage:
    python scripts/daily_upload.py
    ```
 
-4. Access your files in Google Drive organized by media type, year, category, and session.
+4. Start the web interface to browse processed media:
+   ```bash
+   ./start_local.sh
+   ```
+
+5. Access your files either through:
+   - The web interface at http://localhost:5173
+   - Google Drive organized by media type, year, category, and session
 
 ### Transcript Management and Upload
 
@@ -307,7 +383,24 @@ If you prefer to run the process manually step-by-step:
 5. **Scan & Track**: Use `scan_transcripts.py` to catalog all transcriptions in the database
 6. **Set Up Drive**: Use `manage_drive_service.py verify` to set up Google Drive access
 7. **Upload Media**: Use `upload_media_to_drive.py` to upload all media to Google Drive
-8. **Review**: Access your media files organized in Google Drive
+8. **Start Website**: Use `./start_local.sh` to start the web interface
+9. **Review**: Access your media files through the web interface or organized in Google Drive
+
+#### Example Command Sequence
+
+```bash
+# 1. Download a specific date
+python scripts/download_specific_date.py 2025 "House Chambers" "January 6" --convert-audio
+
+# 2. Transcribe the audio
+python scripts/transcribe_audio.py meeting data/downloads/2025/House\ Chambers/January_6_2025_Session
+
+# 3. Update the database
+python scripts/scan_transcripts.py
+
+# 4. Start the web interface
+./start_local.sh
+```
 
 ### GitHub Repository Management
 
