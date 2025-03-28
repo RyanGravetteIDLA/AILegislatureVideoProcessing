@@ -1,0 +1,470 @@
+﻿Migration Plan to GCP for the Idaho Legislative Media Portal
+This plan outlines a step-by-step migration of the Python-based media portal (which downloads Idaho legislative session videos, converts them to audio, transcribes via the Gemini API, and serves content via a web interface) to Google Cloud Platform. The new architecture will use Firebase Hosting for the Vue.js frontend, Firestore for metadata (replacing SQLite), Google Cloud Storage for media files, Secret Manager for credentials, and Cloud Scheduler with Cloud Run for periodic processing. Each step below includes setup actions, development considerations, and best practices to ensure the system is fully testable locally and scalable in production.
+1. Set Up GCP Services and Project Infrastructure
+* Create/Select GCP Project: Begin by creating a new GCP project (or selecting an existing project) for the portal. Enable billing and the necessary APIs (Firestore, Cloud Storage, Secret Manager, Cloud Run, Cloud Scheduler, etc.) for this project. Enabling required APIs up front (Firestore, Cloud Run, Secret Manager, Cloud Scheduler, and Firebase Hosting via Firebase integration) avoids setup issues later.
+   * This has been completed the firebase management API has been enabled
+   * Firestore, cloud run, secrents manager, and cloud scheduler APIs have been enabled.
+   * The project name is legislativevideoreviewswithai
+   * Completed March 28, 2025
+
+
+* Initialize Firebase (for Hosting and Emulators): In the Firebase console, add Firebase to the GCP project. This will allow use of Firebase Hosting and the Firebase emulator suite. Note the project ID, as it will be used for Firebase CLI commands.
+   * Firebase has been initialized
+   * Project ID is legislativevideoreviewswithai
+   * Project number is 335217295357
+
+
+* Cloud Firestore Setup: Enable Cloud Firestore in Native mode (not Datastore mode) in a suitable region. Firestore is a NoSQL, document-oriented database where data is stored in documents organized into collections​
+firebase.google.com
+. There are no tables or rows as in SQLite; instead, you will model the data as collections of JSON-like documents. Choose a location (region) for Firestore. Firestore will be used to store metadata like video info, processing status, and references to storage objects.
+   * The Region chosen was us-west1
+   * Completed March 28, 2025
+
+      * Cloud Storage Setup: Create a Google Cloud firebase Storage bucket to hold all media files (videos, extracted audio, and transcripts). For example, create a bucket named legislative-media-bucket (bucket names must be globally unique). Choose an appropriate storage class and location (e.g., multi-region US or a specific region). Assign IAM permissions so that the services (Cloud Run or Firebase if accessed via Firebase SDK) can read/write the bucket. Cloud Storage is a managed service for storing unstructured data of any size (you can upload any file up to 5 TiB)​
+cloud.google.com
+, making it suitable for large video/audio files and transcripts.
+         * This has been setup in us-west1
+         * The bucket is gs://legislativevideoreviewswithai.firebasestorage.app
+         * Completed March 28, 2025
+
+            * Secret Manager Setup: Enable Secret Manager API. Create secrets for any sensitive credentials, such as the Gemini API key (for transcription) and any other API keys or credentials currently stored in the system keychain. For each secret, store the value in Secret Manager under a identifiable name (e.g., GEMINI_API_KEY). Grant the Cloud Run service account Secret Manager Accessor permissions for these secrets so that your backend can retrieve them securely at runtime​
+.
+               * GEMINI_API_Key has been setup in the secrets with the correct password
+               * IAM has been setup and is called cloud-run-media-portal-service@legislativevideoreviewswithai.iam.gserviceaccount.com with the following roles
+               * Secret Manager (Accessor)
+               * Cloud Storage (Object Admin)
+               * Firestore (User)
+
+                  * Cloud Run Setup: Enable Cloud Run and Artifact Registry (for container images). Decide on a name and region for the Cloud Run service (e.g., media-portal-backend, region us-west1). Cloud Run will host the FastAPI Python backend in a container. Ensure the Cloud Run service's identity has permissions to access Firestore, Cloud Storage, and Secret Manager:
+
+                     * I have enabled an artifact registry called media-portal-repo on us-west1 us-west1-docker.pkg.dev/legislativevideoreviewswithai/media-portal-repo
+                     * Authentication with Cloud IAM is required for authenticated requests
+                     * It has been updated with a repository called media-backend us-west1-docker.pkg.dev/legislativevideoreviewswithai/media-portal-repo/media-backend
+                     * Cloud Run has been setup and our ednpoint url is https://media-portal-backend-335217295357.us-west1.run.app
+
+                        * Cloud Scheduler Setup: Enable Cloud Scheduler API​
+cloud.google.com
+. Decide on the schedule (e.g., daily at midnight) for running the video ingestion/transcription job. You will configure Cloud Scheduler to trigger the processing script (likely via an HTTP request to a Cloud Run endpoint or a Cloud Run job, detailed in Step 8). Also enable the Cloud Tasks API if needed (Cloud Scheduler can call HTTP directly, but if using Pub/Sub as a trigger, Pub/Sub API would be needed instead).
+                           * Completed March 28, 2025
+                           * Cloud Scheduler API has been enabled
+                           * Created a service account for Cloud Scheduler: cloud-scheduler-media-portal@legislativevideoreviewswithai.iam.gserviceaccount.com
+                           * Assigned the Cloud Run Invoker role to the scheduler service account
+                           * Created a scheduler job named "daily-legislative-media-processing" in us-west1 region
+                           * Scheduled to run daily at 1:00 AM America/Boise time
+                           * Configured to trigger the URL: https://media-portal-backend-335217295357.us-west1.run.app/tasks/ingest
+                           * Uses OIDC authentication with the audience set to the Cloud Run URL
+                           * NOTE: Will need to implement the /tasks/ingest endpoint in the API to handle media ingestion when triggered by Cloud Scheduler
+
+                              * Resource Summary: Below is a summary of the GCP services and their roles in the new architecture:
+
+GCP Service
+	Resource & Purpose
+	Setup Actions
+	Cloud Firestore
+	NoSQL database for metadata (replaces SQLite). Stores video info, transcript status, references to storage files, etc.
+	Enable Firestore (Native mode) in a chosen region. Model collections/documents for videos and transcripts.
+	Cloud Storage
+	Object storage for media files (videos, audio, transcripts). Serves large files reliably.
+	Create a GCS bucket (e.g., legislative-media-bucket). Set bucket permissions for Cloud Run service account.
+	Secret Manager
+	Secure storage for API keys and credentials (replaces local keychain).
+	Enable API. Create secrets (e.g., Gemini API key). Grant Cloud Run access to secrets​
+stackoverflow.com
+.
+	Cloud Run
+	Serverless container service for FastAPI backend and processing scripts. Allows scalable deployment of Python code.
+	Enable API. Prepare Docker container for the app. Grant Cloud Run service account access to Firestore, Storage, Secrets.
+	Firebase Hosting
+	Global CDN hosting for the Vue.js frontend.
+	Initialize Firebase in project. Set up Hosting through Firebase CLI (project ID, public directory).
+	Cloud Scheduler
+	Cron-like scheduler to trigger daily processing of new sessions.
+	Enable API. Configure a daily job to invoke the Cloud Run backend (HTTP or Pub/Sub trigger).
+	2. Migrate SQLite Data Model to Firestore
+Analyze SQLite Schema: Begin by reviewing the existing SQLite database schema and the data it holds (e.g., tables for Videos, Transcripts, etc.). Identify the tables and their relationships. Likely, there is a table of video sessions (with fields like session ID, date, title, status, file paths, etc.) and possibly a table or files for transcripts. Since Firestore is a document store, we will represent this data in a denormalized way using collections and documents instead of SQL tables​
+firebase.google.com
+.
+Design Firestore Collections: Define one or multiple Firestore collections to replace the SQLite tables:
+                                 * Create a collection (e.g., videos) where each document represents a legislative session video record. Each video document can contain fields such as: session_id (or use the document ID as the key), title, date, source_url (where the video was downloaded from), status (e.g., pending, processed), and references/paths to the media in Cloud Storage (fields like video_gcs_path, audio_gcs_path, transcript_gcs_path). Firestore documents are JSON-like; new fields can be added flexibly as needed.
+
+                                 * For transcripts, if the transcripts are large, do not store the full text inside Firestore, because Firestore has a max size of 1 MiB per document​
+cloud.google.com
+. Instead, store the transcript files in Cloud Storage and just keep a reference or metadata in Firestore. For example, each video document might have a field transcript_ready: true/false and transcript_gcs_path pointing to the file in GCS. If you need to store small transcript excerpts or status, those can be fields in the video document.
+
+                                 * Alternatively, you could create a separate transcripts collection where each document corresponds to a video’s transcript (with fields like video_id reference, text if small, or a pointer to the GCS file). However, this may be unnecessary if the transcript is entirely in Cloud Storage. A subcollection (e.g., videos/{videoId}/transcript) is another option, but again, storing large text in Firestore is not ideal. The simplest approach is one collection (videos) that contains all necessary info, and heavy content (media) is offloaded to Cloud Storage.
+
+Map Data to Firestore Structure: Determine how to translate each SQLite row to a Firestore document:
+                                    * Unique IDs: If the SQLite table uses an integer primary key, you can use that as the Firestore document ID (Firestore document IDs can be strings; you could prefix the numeric ID or use it directly as a string). Alternatively, use a composite key (like session date + name) or let Firestore auto-generate an ID and store the legacy ID as a field.
+
+                                    * Relationships: In SQLite, there might be foreign keys (e.g., transcript linking to video). In Firestore, relational data is typically denormalized. You might store the video_id in the transcript document, but since we plan to mainly keep transcripts in GCS, the relationship is maintained by naming conventions or fields in the video document (like a field that contains the path to its transcript).
+
+                                    * Metadata Fields: Include fields for any data that the app needs to query or filter by (e.g., session date, type, status). Firestore supports querying on fields with appropriate indexing. If you need to query videos by date or status, ensure those fields exist and consider creating indexes if necessary (Firestore auto-indexes single fields, and compound indexes can be defined in Firestore index settings if needed).
+
+Access Patterns in Firestore: Update the application logic for how it reads/writes data:
+                                       * Retrieving all video records (to list on a page) would correspond to a Firestore query on the videos collection (optionally with filters like a date range or status). Firestore can fetch all documents in a collection or those matching a condition.
+
+                                       * Retrieving a single video’s details means fetching the document by its ID (a single document read).
+
+                                       * Updating status (e.g., marking a video as transcribed) would be a document update in Firestore (which can be done atomically).
+
+                                       * Firestore transactions or batch writes can be used if you need to update multiple documents atomically (e.g., if you had to update a video document and a transcript document together, though here probably not needed if using single collection).
+
+                                       * Delete any logic relying on SQL joins or complex queries; replace it with either single document lookups or simple queries. Denormalize data as needed to avoid the need for multi-document joins. For example, if the frontend needs to show transcript text alongside video info, consider storing a short snippet in Firestore or fetch from GCS on demand via the backend.
+
+Migrate Existing Data: If there is a backlog of existing videos and transcripts in SQLite and local storage, perform a one-time migration:
+                                          * Write a Python script to read all rows from the SQLite database (using SQLAlchemy or direct queries) and create corresponding documents in Firestore. This script can run on your local machine or a one-off Cloud Run job. Use the Google Cloud Firestore Python client (google-cloud-firestore) to batch insert documents. For each record, also upload the existing media files to the Cloud Storage bucket (maintaining a consistent path scheme, e.g., videos/<id>.mp4, audio/<id>.mp3, transcripts/<id>.txt).
+
+                                          * Verify that the data in Firestore matches the source data (consider enabling Firestore in test mode or with lenient security rules during migration, if using Firebase security rules, then lock it down after).
+
+                                          * Going forward, the SQLite database will be retired in favor of Firestore. Remove or disable any code that writes to SQLite, replacing it with Firestore calls.
+
+3. Configure and Deploy the Vue.js Frontend to Firebase Hosting
+                                             * Build the Vue.js App: Ensure the Vue.js project is set up to produce a production build (e.g., using npm run build or the Vue CLI). This will generate static files (HTML, CSS, JS) in a distribution folder (commonly dist/).
+
+                                             * Initialize Firebase Hosting: Use the Firebase CLI to initialize hosting in the frontend project directory. Run firebase init hosting in the Vue project root. When prompted, select the Firebase project (created/linked in Step 1) and specify the build output directory (e.g., dist) as the public directory to deploy​
+firebase.google.com
+​
+firebase.google.com
+. Choose single-page app configuration if the app is an SPA (this will add rewrite rules for routing).
+
+                                             * Configure firebase.json: The initialization will create a firebase.json file. Ensure it has the correct public directory and rewrite settings. For instance, if using Vue Router in history mode, add a rewrite so that all routes serve the index.html. Also, set up any headers or caching preferences if needed (for example, enabling gzip or setting cache control for assets).
+
+                                             * Deploy to Firebase Hosting: Run firebase deploy --only hosting to upload the frontend files​
+firebase.google.com
+. Firebase Hosting will provision a global CDN URL (usually https://<PROJECT_ID>.web.app). After deployment, test that the site is reachable and the static content loads. If using a custom domain, follow Firebase Hosting instructions to connect your domain (DNS setup and domain verification).
+
+                                             * Integration with Backend: Update the frontend configuration to communicate with the new backend endpoints and Firestore as needed:
+
+                                                * If the Vue app previously talked to a local API (FastAPI on localhost), update the API base URL to the Cloud Run URL (you can get this after deploying the backend in Step 4) or use a proxy setup. Ensure CORS is handled on the backend to allow the Firebase Hosting domain to request resources.
+
+                                                * If the Vue app needs direct access to Firestore (it might not if using the FastAPI as an API layer), you would set up Firebase SDK in the frontend. However, given a FastAPI backend, it’s likely the Vue app will just call REST endpoints, so the Firebase JS SDK may only be needed if you use Firebase Auth or directly read Firestore (not in this case).
+
+                                                   * Testing: Use the Firebase Hosting emulator for local testing of the frontend if desired. Running firebase emulators:start --only hosting will serve the built site locally. This isn’t strictly necessary if you simply open the built index.html for testing, but the emulator can simulate Firebase environment. You can also test the entire integration by running the frontend locally (or on the emulator) pointing to the local emulated backend and database (see Step 7 for emulators).
+
+4. Package the Python FastAPI Backend for Cloud Run
+Prepare the FastAPI Application: Ensure the FastAPI app is structured as a module with a clear entrypoint (for example, using Uvicorn to run the app). In the code, make the host and port configurable via environment variables. Cloud Run will supply a port number via the $PORT environment variable, so your FastAPI/ASGI server should bind to that port. If using Uvicorn, you can do something like:
+
+python
+CopyEdit
+import os
+port = int(os.environ.get("PORT", 8080))
+uvicorn.run(app, host="0.0.0.0", port=port)
+                                                      *  This ensures the app runs on the correct port both locally (default 8080) and on Cloud Run (which might assign a different port).
+
+Create a Dockerfile: Containerize the Python backend with all its dependencies. Write a Dockerfile based on a Python 3 image. For example:
+
+Dockerfile
+CopyEdit
+FROM python:3.11-slim
+WORKDIR /app
+COPY . /app
+RUN pip install -r requirements.txt  # make sure requirements.txt includes google-cloud libraries for firestore, storage, etc.
+EXPOSE 8080
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+                                                         *  Include any additional system packages needed (e.g., if ffmpeg is needed for audio conversion, you might use apt-get to install it in the image or use a base image that has ffmpeg). The EXPOSE 8080 and the Uvicorn command ensure Cloud Run knows how to start the server.
+Note: Ensure that any references to local filesystem paths in code are updated to use either Cloud Storage or ephemeral storage. Cloud Run containers have a writable filesystem but it is ephemeral (cleared between requests and not shared between instances). It’s fine to use /tmp for temporary files during a single request (like during processing of one video) but anything that needs persistence should go to Cloud Storage or Firestore.
+
+                                                         * Build and Push Container Image: Build the Docker image and push it to a container registry. You can use Google’s Artifact Registry or Container Registry. For example, enable Artifact Registry in your project and create a Docker repo (or use the default). Then build and push:
+
+                                                            * Locally with Docker: docker build -t REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/media-backend:v1 . and then docker push REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/media-backend:v1.
+
+                                                            * Or use Google Cloud Build: gcloud builds submit --tag REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/media-backend:v1 . to build in the cloud.
+
+                                                               * Deploy to Cloud Run: Deploy the container to Cloud Run: gcloud run deploy media-portal-backend --image REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/media-backend:v1 --platform managed --region us-central1 --memory 1Gi --allow-unauthenticated. Adjust memory and CPU based on needs (video processing can be heavy; you might choose 2 GiB or higher if needed, and possibly 2 vCPU for faster processing). Initially, you might allow unauthenticated requests so the frontend or Cloud Scheduler can reach it easily. (You can later secure certain endpoints with IAM or use Firebase Auth if needed.)
+
+                                                                  * When deploying, set environment variables for configuration: e.g., GOOGLE_CLOUD_PROJECT (project ID), any flags for environment (like ENV=production), and configure Secret Manager integration for sensitive vars (see Step 6 for details). For example, you can attach the Gemini API key secret as an environment variable GEMINI_API_KEY in Cloud Run​
+stackoverflow.com
+.
+
+                                                                  * Set concurrency and scaling: Cloud Run by default can handle multiple requests concurrently. If the video processing is CPU intensive, you might set concurrency to 1 to process one video per container at a time, or leave it higher if the endpoints are mostly lightweight except the scheduled job. Also set max instances to control costs (e.g., if this is low-traffic, you might not want more than say 2 instances at a time).
+
+                                                                     * Configure Service Account and Permissions: By default, Cloud Run uses the project's default Compute Service Account. Ensure this service account has the roles mentioned in Step 1 (Firestore, Storage, Secret Manager access). If not, create a dedicated service account for the Cloud Run service for more control. Attach it during deployment with --service-account flag.
+
+                                                                     * Testing Locally: You can run the FastAPI app locally (with uvicorn or docker run) to ensure it still works after modifications:
+
+                                                                        * Without Docker: set env vars (like credentials or emulator addresses as needed), run uvicorn app.main:app --reload and test the endpoints (e.g., GET /health or whatever endpoints exist).
+
+                                                                        * With Docker: docker run -p 8080:8080 -e PORT=8080 -e ... [other env] media-backend:v1 and then visit http://localhost:8080. This simulates Cloud Run environment. Use this to verify that it can connect to Firestore (if you point it at emulator or test project) and Cloud Storage.
+
+                                                                           * Continuous Deployment (Optional): Set up CI/CD so that pushing new code automatically builds and deploys the container (for example, using Cloud Build triggers or GitHub Actions with gcloud). This ensures the deployment process is repeatable and versioned.
+
+5. Adapt Python Ingestion Scripts for Cloud Storage and Firestore
+Now, refactor the Python backend scripts (which handle downloading videos, converting audio, and transcribing) to use Firestore for metadata and Cloud Storage for file storage instead of local disk and SQLite.
+                                                                              * Use Cloud Storage for Files: Replace any local file system usage with Google Cloud Storage:
+
+Downloading Videos: Instead of saving the downloaded video to a local directory, stream it to Cloud Storage. You can still download to a temporary file (e.g., using Python’s tempfile or a /tmp path) if needed, but after download, upload the video to the GCS bucket. For example, use the Cloud Storage Python client:
+
+python
+CopyEdit
+from google.cloud import storage
+client = storage.Client()
+bucket = client.bucket('legislative-media-bucket')
+blob = bucket.blob(f"videos/{video_filename}")
+blob.upload_from_filename(local_temp_video_path)
+                                                                                 *  This will save the video in the cloud for later access. If videos are large and you want to avoid storing them locally even temporarily, you could use a streamed upload (download in chunks and write to blob). A simpler approach is to download then upload, which is fine if the disk space in the container is sufficient for one video file.
+
+                                                                                 * Audio Extraction: Use ffmpeg or pydub to convert video to audio (e.g., mp3 or wav). This likely involves reading the video file and writing an audio file. Similarly, after generating the audio file, upload it to Cloud Storage (e.g., blob = bucket.blob(f"audio/{audio_filename}"); blob.upload_from_filename(local_audio_path)). The audio file in GCS can later be used for re-processing if needed or for serving on the web if you allow users to play the audio.
+
+                                                                                 * Transcription Output: Once you get the transcribed text (from the Gemini API or whichever service via google-generativeai or other library), save the transcript to a text file or JSON. Then upload that file to Cloud Storage (e.g., transcripts/<id>.txt or .json). Do not rely on local disk for permanent storage. After uploading, you can delete the local temp files to free space.
+
+                                                                                 * After each upload, take note of the GCS path (e.g., gs://legislative-media-bucket/videos/123.mp4). These will be stored in Firestore for reference.
+
+                                                                                    * Use Firestore for Metadata and Tracking: Remove SQLite read/write calls and substitute Firestore operations:
+
+When a new video is identified for processing (e.g., your script finds a new session), create a document in Firestore in the videos collection. For example:
+
+python
+CopyEdit
+from google.cloud import firestore
+db = firestore.Client()
+doc_ref = db.collection('videos').document(video_id)
+doc_ref.set({
+    "title": title,
+    "date": date,
+    "source_url": source_url,
+    "status": "downloading"
+})
+                                                                                       *  Set initial status (perhaps "downloading" or "processing") in Firestore so you can monitor progress. Firestore set() will create or replace a document. You can also use add() to auto-generate an ID if you didn't determine an ID.
+
+                                                                                       * Update status through the pipeline: once video is downloaded, update the Firestore doc (e.g., doc_ref.update({"status": "downloaded", "video_gcs_path": "gs://..."});). After audio extracted, update({"status": "audio_ready", "audio_gcs_path": "gs://..."}). After transcription done, update({"status": "transcribed", "transcript_gcs_path": "gs://...", "transcript_ready": True}). This keeps a live log of what’s done. You might also store timestamps for each stage if needed (Firestore can store timestamp fields).
+
+                                                                                       * If any errors occur (e.g., download fails), you can log an error field or set status to "error" with an error message field. This can help in debugging.
+
+                                                                                       * Firestore is strongly consistent and supports real-time listeners if needed (not crucial here, but if someday you want the frontend to show live status, it could listen to the document changes).
+
+                                                                                          * Fetching Data to Serve: The FastAPI backend should have endpoints to serve or provide data to the frontend. For example:
+
+                                                                                             * An endpoint like /api/videos that returns a list of video entries (maybe title, date, status, and possibly signed URLs or public links to the media).
+
+                                                                                             * Since the files are in GCS, you might either make them public or use signed URLs for access. Option 1: Make the bucket objects public (not generally recommended for sensitive data, but these are legislative session videos, which might be public by nature; still, transcripts might need some consideration). Public objects can be accessed via a URL https://storage.googleapis.com/<bucket>/<path>. Option 2: keep them private and have the backend generate a signed URL when the frontend needs to download or stream a video/audio/transcript. This way, access is controlled. The signed URL can be time-limited (e.g., valid for an hour).
+
+                                                                                             * Use Firestore data to populate these responses. The FastAPI route handler would query Firestore (e.g., db.collection('videos').order_by('date', direction=firestore.Query.DESCENDING).stream()) to get all video docs, then format them as JSON for the frontend.
+
+                                                                                             * For transcripts, if you want to display the transcript text on the web interface, you have a couple of options:
+
+                                                                                                * Have the backend fetch the transcript file from GCS and return its content via an API (perhaps /api/videos/{id}/transcript returns the text). This would involve the backend reading the file (Storage client blob.download_as_text()).
+
+                                                                                                * Or serve a link to the file (if public or signed URL) for download or viewing.
+
+                                                                                                * Given transcripts might be lengthy, it might be better to not send the entire text unless needed. Consider pagination or storing structured data (like an array of captions) if needed for advanced UI.
+
+                                                                                                   * Testing Data Flow: Simulate one full cycle in a development environment: pick a sample video to process through the script (downloading a small test video). Run the adapted script locally (with Firestore and Storage pointed to dev/test instances or emulators). Verify that:
+
+                                                                                                      * A Firestore document is created and updated through stages.
+
+                                                                                                      * Files appear in the Cloud Storage bucket.
+
+                                                                                                      * The final Firestore document has the correct paths and status.
+
+                                                                                                      * The FastAPI endpoints can retrieve this information and the frontend can display it. This end-to-end test ensures all pieces are correctly wired.
+
+6. Securely Manage API Keys and Config with Secret Manager
+Handling secrets is crucial when moving to cloud. Instead of using a system keychain (keyring library) or storing in config files, use Google Cloud Secret Manager for any sensitive information.
+                                                                                                         * Identify Secrets: Determine which secrets are in use:
+
+                                                                                                            * Gemini API Key (for transcription API) – likely the main secret.
+
+                                                                                                            * Possibly API keys for YouTube/Vimeo or other services if videos are fetched from an API (not mentioned, but consider if any).
+
+                                                                                                            * Service account credentials (not needed if using Google Cloud services with default credentials on Cloud Run – those are handled via IAM roles, not raw keys).
+
+                                                                                                            * Any other config that is sensitive (database passwords, etc., though not applicable since using Firestore and GCS which use IAM).
+
+                                                                                                               * Store Secrets in GCP: In Step 1 we created the secrets in Secret Manager. Now, ensure the values are up-to-date. For example:
+
+                                                                                                                  * GEMINI_API_KEY in Secret Manager contains the transcription API key (Gemini might refer to Google’s Generative AI API or a third-party – ensure the correct key/token is stored).
+
+                                                                                                                  * If there are OAuth tokens or refresh tokens (like if using Google APIs via OAuth), consider storing those if they need to persist (though ideally you’d re-auth using proper flows rather than store tokens long-term).
+
+                                                                                                                     * Access Secrets in Cloud Run: There are two ways to get secrets in your running container:
+
+                                                                                                                        * Mount as Environment Variables (recommended): Cloud Run now supports directly mounting Secret Manager secrets as environment vars. This means you can configure the Cloud Run service so that an env var (e.g., GEMINI_API_KEY) is populated from Secret Manager at deployment time​
+stackoverflow.com
+. This is convenient because your code can read it like any other environment variable, and you don’t need to check in any sensitive info. For example, in the Cloud Run deployment command, use --update-secrets="GEMINI_API_KEY=GEMINI_API_KEY:latest". The benefit is your code doesn't change, and you rely on Cloud Run's integration.
+
+Programmatic Access (alternative): Use the Secret Manager API in code to fetch the secret on startup. This would require the Cloud Run service account have access and using the library google-cloud-secret-manager. For example:
+
+python
+CopyEdit
+from google.cloud import secretmanager
+client = secretmanager.SecretManagerServiceClient()
+name = f"projects/{PROJECT_ID}/secrets/GEMINI_API_KEY/versions/latest"
+response = client.access_secret_version(name=name)
+api_key = response.payload.data.decode('UTF-8')
+                                                                                                                           *  This method works too, but is more verbose. It can be useful if you need to fetch secrets dynamically or multiple times. In most cases, the environment variable approach is simpler.
+
+                                                                                                                              * Update Code to Use Secrets: Remove any usage of keyring library calls that fetch credentials from the local keychain. Instead, retrieve the credentials from environment variables or via the method above. For local development, since Secret Manager might not be accessible (and you may not want to use production secrets), you can use a .env file and Python’s python-dotenv (which is already in requirements). For example, create a .env file with GEMINI_API_KEY=your_testing_key for local use. Have the code load it in dev mode, or simply set env vars manually when running locally.
+
+                                                                                                                                 * Ensure that .env is listed in .gitignore so it’s not committed.
+
+Use a configuration pattern: e.g., an settings.py that reads from env or defaults. For instance:
+
+python
+CopyEdit
+import os
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+                                                                                                                                    *  Then in production (Cloud Run) it’s provided via Secret Manager, and in dev you supply it via .env or shell.
+
+                                                                                                                                       * Secret Rotation: With Secret Manager, you can update the secret value in GCP without changing code or redeploying (if using the environment variable method, a redeploy is needed to pick up new secret versions unless you use the API to fetch at runtime). Make a note to regularly rotate keys if applicable, and update them in Secret Manager accordingly.
+
+                                                                                                                                       * Validate Access: Test that the Cloud Run service is indeed able to access the secret:
+
+                                                                                                                                          * Deploy a new revision with the secret referenced. In the Cloud Run logs, add a debug log to print (or better, to confirm existence of) a secret-dependent variable (not the secret itself, but maybe call the transcription API to ensure the key works).
+
+                                                                                                                                          * If there is any permission issue, revisit IAM roles (the Cloud Run service’s identity must have Secret Manager Secret Accessor as mentioned).
+
+                                                                                                                                          * Also consider the case of local testing: ensure that running the script locally pulls from .env or some safe store so you don’t accidentally commit secrets or leave them out.
+
+Security tip: By using Secret Manager and IAM roles, you eliminate hardcoding secrets. This is more secure and also easier to manage across environments (dev, staging, prod each can have their own secret values). The Secret Manager integration with Cloud Run provides audit logging and version control for secrets, aligning with best practices for cloud deployments​
+stackoverflow.com
+.
+7. Local Development with Emulators and Testing
+To avoid incurring costs and to enable offline development, set up local emulators for Firestore, Storage, and any other services where possible. This allows you to test the entire system on your machine as if it were deployed, catching issues early.
+                                                                                                                                             * Firestore Emulator: Google provides a local Firestore emulator that runs in memory​
+cloud.google.com
+. You can start it with the gcloud CLI or the Firebase CLI. Options:
+
+                                                                                                                                                * Using gcloud: run gcloud emulators firestore start --host-port=localhost:8080 (for example)​
+cloud.google.com
+. This will start an in-memory Firestore on port 8080.
+
+                                                                                                                                                * Using Firebase Emulator Suite: If you have the Firebase CLI, you can run firebase emulators:start --only firestore (and include other emulators as needed). The Firebase route is convenient if using multiple emulators together.
+
+                                                                                                                                                * Once running, note the host and port (the emulator typically prints something like Firestore emulator running at 127.0.0.1:8080).
+
+                                                                                                                                                * To connect your application code to the emulator, set the environment variable FIRESTORE_EMULATOR_HOST="localhost:8080" (include http:// if needed by the library). The Google Firestore client library will detect this env var and route requests to the emulator instead of the cloud​
+cloud.google.com
+. Ensure this env var is set in your local run configuration (you can put it in your .env as well).
+
+                                                                                                                                                   * Cloud Storage Emulator: Unlike Firestore, Google Cloud Storage does not have an official Google-provided standalone emulator (as noted in Google’s docs)​
+cloud.google.com
+. However, the Firebase Local Emulator Suite includes a Storage emulator that can mimic Cloud Storage for Firebase.
+
+                                                                                                                                                      * To start it, you can run firebase emulators:start --only storage (or include it with other services). By default, it listens on localhost:9199 for Storage.
+
+                                                                                                                                                      * To make your code use this emulator, set the env var STORAGE_EMULATOR_HOST="http://localhost:9199" (the http:// is important, as otherwise the client might default to https and fail​
+stackoverflow.com
+). The Google Cloud Storage Python client library will recognize this environment variable and send requests to the emulator host instead of actual Cloud Storage​
+cloud.google.com
+.
+
+                                                                                                                                                      * Alternatively, there are third-party emulators (like the GitHub project oittaa/gcp-storage-emulator​
+github.com
+ or using LocalStack). But using the Firebase emulator is simpler since it’s integrated and supported for testing purposes, aligning closely with Firebase Authentication/Rules if those were used. Keep in mind that the Firebase Storage emulator is mostly for testing Firebase SDKs; it should suffice for basic storage operations testing.
+
+                                                                                                                                                      * Note: The storage emulator will not perfectly emulate all GCS features (for example, it might not enforce IAM, and it won’t trigger Cloud Functions). But for local testing of upload/download logic, it’s adequate​
+firebase.google.com
+​
+firebase.google.com
+.
+
+                                                                                                                                                         * Firebase Authentication Emulator (if needed): If your frontend were to use Firebase Auth to gate content, you could use the Auth emulator. However, in this project, it doesn’t seem authentication is a focus (since legislative data is likely public). So you can skip this unless you plan to add user accounts.
+
+                                                                                                                                                         * Secret Manager (Local Alternatives): There is no emulator for Secret Manager. For local tests, use environment variables or a .env file to simulate secrets. For instance, when running the FastAPI app locally, ensure GEMINI_API_KEY is exported or in .env. This way, your code that normally calls Secret Manager will instead find the key in env and proceed. You can add logic to your app initialization to detect if running in a local/dev mode (perhaps via an ENV variable) and load secrets from a local source instead of Secret Manager.
+
+                                                                                                                                                         * Cloud Scheduler (Local Simulation): Cloud Scheduler itself can’t run on your local machine, but you can simulate its effect by simply invoking the scheduled function/script manually. For example, if your ingestion logic is exposed as an endpoint (say /tasks/ingest) on the FastAPI app, you can send a request to that endpoint (curl http://localhost:8080/tasks/ingest) to simulate the scheduler trigger. Alternatively, run the function directly in code for testing (call the Python function). During development, you might also use a simple cron job on your machine to test periodic execution.
+
+                                                                                                                                                         * Running the Full Emulator Suite: The Firebase Emulator Suite allows running Firestore, Storage, Hosting, etc., together. For instance, you can run firebase emulators:start --only firestore,storage,hosting to have all three. This can let you load the frontend at localhost:5000 (default hosting emulator port) and it will talk to localhost Firestore/Storage via the Firebase SDK or your backend. However, since our Vue app likely communicates with the FastAPI backend (not directly with Firestore), you might not need to emulate hosting for the frontend (you can just serve the built files or run the dev server). The critical pieces are Firestore and Storage so that the backend code can run against them.
+
+                                                                                                                                                         * Configure FastAPI for Emulators: Add configuration in the FastAPI backend to detect if it should use emulator hosts. For example, you can use environment variables like FIRESTORE_EMULATOR_HOST and STORAGE_EMULATOR_HOST as described. The Google libraries will pick those up:
+
+                                                                                                                                                            * When FIRESTORE_EMULATOR_HOST is set, the Firestore client connects to emulator​
+cloud.google.com
+.
+
+                                                                                                                                                            * When STORAGE_EMULATOR_HOST is set, the Storage client connects to emulator​
+cloud.google.com
+.
+
+                                                                                                                                                            * Confirm in logs or via testing that reads/writes go to the emulator (the emulator CLI usually logs the requests).
+
+                                                                                                                                                               * Test End-to-End Locally: With the emulators running and the backend configured to use them, run the FastAPI app locally. Initiate the ingestion process (via the Cloud Scheduler simulation or direct call). Walk through a test case:
+
+                                                                                                                                                                  * Backed by the Firestore emulator, the script creates a doc in the emulated Firestore.
+
+                                                                                                                                                                  * Files are uploaded to the emulated Storage (the emulator will save files likely to a local directory under the Firebase emulator program — by default, it might use a folder like /tmp/firebase/emulator/storage or you can configure it).
+
+                                                                                                                                                                  * Fetch data via the FastAPI endpoints, ensure it’s reading from emulator Firestore and returning expected results.
+
+                                                                                                                                                                  * Load the frontend (either via npm run serve for Vue or the hosting emulator) and see that it can fetch data from the local FastAPI and display it.
+
+                                                                                                                                                                  * This local integration test gives confidence that once deployed, the components will work similarly (with the main difference being using actual GCP services).
+
+                                                                                                                                                                     * Troubleshooting Emulators: If you encounter connection issues:
+
+                                                                                                                                                                        * Check that env vars are properly set in the context where the code runs.
+
+                                                                                                                                                                        * Firestore emulator requires the project ID to match what the code expects. If you use firestore.Client() with no args, it will use the GOOGLE_CLOUD_PROJECT env var or application default credentials project. Set export GOOGLE_CLOUD_PROJECT=your-project-id (perhaps a dummy id like demo-project that you start the emulator with using firebase use or specifying in the emulator UI). The Firestore emulator will accept any project ID but your code needs to use the same one consistently.
+
+                                                                                                                                                                        * For the Storage emulator, ensure you use http:// in the host URL and that the port is correct.
+
+                                                                                                                                                                        * Remember that emulator data is ephemeral (especially Firestore emulator which is in-memory unless you export/import data). Each run starts fresh, which is fine for tests.
+
+By using emulators, you can develop and test locally without touching production data or incurring costs, and safely debug issues. Google’s emulator suite supports most functionalities needed for this project​
+cloud.google.com
+.
+8. Schedule Daily Ingestion with Cloud Scheduler and Cloud Run
+In production, automating the daily download and transcription of new session videos is crucial. Cloud Scheduler will act as the cron service to trigger the process every day.
+                                                                                                                                                                           * Cloud Run Endpoint for Ingestion: Design your FastAPI backend to have an endpoint (or a Cloud Run job) that Cloud Scheduler can trigger to start the daily processing. Two approaches:
+
+                                                                                                                                                                              * HTTP Endpoint: For example, create a FastAPI route /tasks/ingest (or /cron/daily-ingest) that when hit, initiates the sequence of downloading the latest session videos, processing them, etc. This could simply call the same functions you use when running locally. Secure this endpoint by requiring a known token or verifying the caller (Cloud Scheduler can be set to send an auth token, described below).
+
+                                                                                                                                                                              * Cloud Run Job: Google Cloud Run offers “jobs” (batch tasks) that are meant for running to completion (not serving requests). You could containerize the ingestion script as a separate Cloud Run Job resource. However, since your FastAPI service already contains the logic, it might be simpler to stick to the HTTP approach for now.
+
+                                                                                                                                                                                 * Create Cloud Scheduler Job: In Cloud Scheduler, create a scheduled job to run daily (e.g., every night at 1am). Configure it as an HTTP target:
+
+                                                                                                                                                                                    * URL: Set the target URL to your Cloud Run service’s endpoint (for example, https://media-portal-backend-<hash>-uc.a.run.app/tasks/ingest).
+
+                                                                                                                                                                                    * HTTP Method: POST (or GET, depending on how you implement the endpoint; POST is usually better for a job trigger).
+
+                                                                                                                                                                                    * Auth: Since you likely set the Cloud Run service to allow unauthenticated for ease, you could leave it open. However, it's more secure to restrict the Cloud Run service to authenticated invocations only, and then have Cloud Scheduler supply credentials. Cloud Scheduler can use a service account to invoke the endpoint with OIDC authentication​
+cloud.google.com
+​
+cloud.google.com
+. To do this:
+
+                                                                                                                                                                                       * Create a service account for Cloud Scheduler (or use an existing one) with the Cloud Run Invoker role on your service​
+cloud.google.com
+​
+cloud.google.com
+.
+
+                                                                                                                                                                                       * In Cloud Scheduler job settings, provide this service account in the Auth section, choosing OIDC Token and the audience as the Cloud Run URL.
+
+                                                                                                                                                                                       * This way, only Cloud Scheduler (with that service account) can invoke the endpoint, and your Cloud Run stays secure.
+
+                                                                                                                                                                                          * Schedule: Use a cron expression for daily. For example, 0 1 * * * for 1:00 AM every day. Set timezone if needed (perhaps America/Boise for Idaho).
+
+                                                                                                                                                                                          * Body/Payload: If your endpoint needs any payload (maybe a JSON instructing it what to do), you can add it. Likely not needed if the logic is fixed (the script knows to fetch the latest videos).
+
+                                                                                                                                                                                             * Cloud Run Job Alternative: If you choose to use a Cloud Run Job (which might be overkill here), you would deploy the job and then in Cloud Scheduler select Cloud Run Job as the target (this is a newer feature). You can then schedule the job to run daily without an HTTP call. For simplicity, using the HTTP trigger on the existing service is fine.
+
+                                                                                                                                                                                             * Testing the Schedule: Don’t wait for the actual time to test — manually trigger the Cloud Scheduler job:
+
+                                                                                                                                                                                                * In Cloud Scheduler UI, there’s a "Run now" button. Click it to ensure the job can successfully invoke the backend. Check the Cloud Run logs to see if the ingestion process started and completed. Monitor for any errors.
+
+                                                                                                                                                                                                * Alternatively, use gcloud scheduler jobs run <job-name> to trigger it via CLI.
+
+                                                                                                                                                                                                * Also test what happens if the job runs when a previous processing is still going (if that’s even possible). Cloud Run will spin up another instance if needed. If you want to prevent overlap, you might implement a simple lock (e.g., in Firestore, have a document that marks a job in progress).
+
+                                                                                                                                                                                                   * Monitoring & Alerts: Set up monitoring for the daily job:
+
+                                                                                                                                                                                                      * Use Cloud Run logs to verify each day's run. You might integrate with Cloud Monitoring to trigger an alert if a run fails or doesn’t happen (for instance, no logs in a 24h period).
+
+                                                                                                                                                                                                      * Cloud Scheduler can be configured to retry on failure (set the retry parameters in the job config in case the HTTP call fails or times out). Perhaps allow a couple of retries with some interval.
+
+                                                                                                                                                                                                      * If the job consistently runs long (Cloud Run has a max request timeout, default 5 minutes, extendable to 15 minutes), consider optimizing the process or splitting it (e.g., process one video per invocation, and have Scheduler trigger multiple times or use Pub/Sub fan-out).
+
+                                                                                                                                                                                                         * Post-processing: After the scheduled run, the new data should be in Firestore and media in Storage. The frontend should automatically reflect new entries (depending on implementation, maybe it fetches data on page load or you have to refresh the page). If using Firestore with listeners (unlikely in this setup), it could show up in realtime. Otherwise, the next user visit will fetch the updated list from the backend.
+
+                                                                                                                                                                                                         * Cron Simulation in Dev: As mentioned, simulate the scheduler by hitting the endpoint manually during development. This ensures your endpoint works as expected. You might also simulate multiple days or error scenarios to ensure robustness (for example, run it with no new video available and see that it handles gracefully by doing nothing or logging "no new video").
+
+By using Cloud Scheduler to trigger Cloud Run, you achieve a serverless cron job. Cloud Scheduler securely triggers the Cloud Run service on a schedule (just like cron)​
+cloud.google.com
+, ensuring the daily processing happens reliably. This completes the migration by automating the ingestion pipeline in the cloud.
+________________
+
+
+Conclusion: Following this checklist, you will have migrated the media portal to GCP with a modern, cloud-native architecture. The Vue.js frontend is served globally via Firebase Hosting, the Python FastAPI backend runs on Cloud Run (scaling as needed), data is stored in Cloud Firestore (which is managed and scalable, with no local database to maintain), large media files reside in Cloud Storage (designed for serving large binary objects​
+cloud.google.com
+), secrets are handled securely through Secret Manager, and the daily processing is orchestrated by Cloud Scheduler. All components can be developed and tested locally using emulators to ensure a smooth transition before going live. This setup not only meets the requirements but also sets the stage for easier maintenance and potential future enhancements (like adding more transcripts processing or integrating search, etc.) without worrying about underlying infrastructure.
