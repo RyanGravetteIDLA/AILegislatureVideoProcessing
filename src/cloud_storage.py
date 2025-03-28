@@ -69,14 +69,13 @@ class GoogleCloudStorage:
             self.client = storage.Client()
             logger.info("Using application default credentials for GCS")
         
-        # Get or create the bucket
-        try:
-            self.bucket = self.client.get_bucket(bucket_name)
-            logger.info(f"Connected to GCS bucket: {bucket_name}")
-        except NotFound:
-            logger.warning(f"Bucket {bucket_name} not found. Creating it...")
-            self.bucket = self.client.create_bucket(bucket_name)
-            logger.info(f"Created GCS bucket: {bucket_name}")
+        # Get the bucket reference without checking existence
+        # This avoids requiring storage.buckets.get permission
+        self.bucket = self.client.bucket(bucket_name)
+        logger.info(f"Created reference to GCS bucket: {bucket_name}")
+        
+        # We know the bucket exists from our tests, so we'll skip the existence check
+        # that would require storage.buckets.get permission
     
     def upload_file(self, local_path, remote_path=None, make_public=False, content_type=None):
         """
@@ -115,9 +114,8 @@ class GoogleCloudStorage:
             file_size = os.path.getsize(local_path)
             logger.info(f"Uploading {local_path} to gs://{self.bucket_name}/{remote_path} ({file_size/1024/1024:.2f} MB)")
             
-            # Upload the file, with resumable upload for large files
-            resumable = file_size > 8 * 1024 * 1024  # use resumable transfer if > 8MB
-            blob.upload_from_filename(local_path, resumable=resumable)
+            # Upload the file
+            blob.upload_from_filename(local_path)
             
             # Make public if requested
             if make_public:
@@ -152,10 +150,8 @@ class GoogleCloudStorage:
             # Get the blob
             blob = self.bucket.blob(remote_path)
             
-            # Check if blob exists
-            if not blob.exists():
-                logger.error(f"File not found in GCS: gs://{self.bucket_name}/{remote_path}")
-                return False
+            # Skip existence check as it requires additional permissions
+            # We'll just try to download and catch any errors
             
             # Download the file
             logger.info(f"Downloading gs://{self.bucket_name}/{remote_path} to {local_path}")
@@ -204,10 +200,8 @@ class GoogleCloudStorage:
         try:
             blob = self.bucket.blob(remote_path)
             
-            # Check if blob exists
-            if not blob.exists():
-                logger.warning(f"File not found in GCS: gs://{self.bucket_name}/{remote_path}")
-                return False
+            # Skip existence check as it requires additional permissions
+            # We'll just try to delete and catch any errors
             
             # Delete the blob
             blob.delete()
@@ -233,10 +227,8 @@ class GoogleCloudStorage:
         try:
             blob = self.bucket.blob(remote_path)
             
-            # Check if blob exists
-            if not blob.exists():
-                logger.error(f"File not found in GCS: gs://{self.bucket_name}/{remote_path}")
-                return None
+            # Skip existence check as it requires additional permissions
+            # We'll just try to generate the URL and catch any errors
             
             # Generate signed URL
             url = blob.generate_signed_url(
@@ -285,8 +277,16 @@ def get_default_gcs_client():
             logger.warning(f"Failed to initialize GCS client from secrets manager: {e}")
     
     # Fall back to environment variables
-    bucket_name = os.environ.get('GCS_BUCKET_NAME', 'idaho-legislature-media')
+    bucket_name = os.environ.get('GCS_BUCKET_NAME', 'legislativevideoreviewswithai.firebasestorage.app')
     credentials_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+    
+    # If credentials not set, try to find the credential file
+    if not credentials_path:
+        possible_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                              'credentials', 'legislativevideoreviewswithai-80ed70b021b5.json')
+        if os.path.exists(possible_path):
+            credentials_path = possible_path
+            logger.info(f"Using credentials file: {credentials_path}")
     
     return GoogleCloudStorage(bucket_name, credentials_path)
 

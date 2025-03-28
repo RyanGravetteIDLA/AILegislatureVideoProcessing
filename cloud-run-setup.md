@@ -9,7 +9,7 @@ This guide outlines the steps to deploy the Idaho Legislature Media Portal to Go
 3. Docker installed
 4. Service account with necessary permissions
 
-## Setup Google Cloud Project
+## Step 1: Setup Google Cloud Project
 
 1. Create a new Google Cloud Project (or use an existing one):
 
@@ -28,144 +28,120 @@ gcloud services enable secretmanager.googleapis.com
 gcloud services enable artifactregistry.googleapis.com
 ```
 
-## Configure Environment Variables
+## Step 2: Configure Service Account
 
-1. Create environment variables in Secret Manager:
+The application uses Firebase Admin SDK service account for authentication:
 
 ```bash
-# Create secrets
-gcloud secrets create api-env --data-file=.env
+# If you haven't uploaded your service account key to the project
+gcloud secrets create firebase-credentials --data-file=credentials/legislativevideoreviewswithai-80ed70b021b5.json
+
+# Grant permissions to the service account
+gcloud projects add-iam-policy-binding [PROJECT_ID] \
+  --member="serviceAccount:firebase-adminsdk-fbsvc@legislativevideoreviewswithai.iam.gserviceaccount.com" \
+  --role="roles/datastore.user"
 ```
 
-## Deploy API Service
+## Step 3: Deploy the backend to Cloud Run
 
-1. Build and deploy the API service:
+Deploy the backend to Cloud Run:
 
 ```bash
-# Build the API container image
-gcloud builds submit --tag gcr.io/[PROJECT_ID]/legislature-api src/
-
-# Deploy to Cloud Run
-gcloud run deploy legislature-api \
-  --image gcr.io/[PROJECT_ID]/legislature-api \
-  --platform managed \
-  --region us-central1 \
+gcloud run deploy media-portal-backend \
+  --source . \
+  --region=us-west1 \
+  --platform=managed \
   --allow-unauthenticated \
-  --memory 1Gi \
-  --cpu 1 \
-  --set-secrets="/app/.env=api-env:latest" \
-  --command="python" \
-  --args="src/server.py,--api-only"
+  --memory=1Gi \
+  --service-account=firebase-adminsdk-fbsvc@legislativevideoreviewswithai.iam.gserviceaccount.com
 ```
 
-## Deploy File Server Service
+Note: The `--service-account` flag specifies which service account Cloud Run should use for authentication. This should match the service account email in your JSON credentials file.
 
-1. Build and deploy the File Server service:
-
-```bash
-# Build the File Server container image
-gcloud builds submit --tag gcr.io/[PROJECT_ID]/legislature-files src/
-
-# Deploy to Cloud Run
-gcloud run deploy legislature-files \
-  --image gcr.io/[PROJECT_ID]/legislature-files \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --memory 2Gi \
-  --cpu 1 \
-  --set-secrets="/app/.env=api-env:latest" \
-  --command="python" \
-  --args="src/server.py,--file-only"
-```
-
-## Deploy Frontend
+## Step 4: Deploy Frontend to Firebase Hosting
 
 1. Build and deploy the Frontend:
 
 ```bash
 # Update environment variables for production
 cd frontend
-echo "VITE_API_URL=https://legislature-api-[PROJECT_ID].run.app/api" > .env.production
-echo "VITE_FILE_SERVER_URL=https://legislature-files-[PROJECT_ID].run.app/files" >> .env.production
+echo "VITE_API_URL=https://media-portal-backend-[PROJECT_ID].us-west1.run.app/api" > .env.production
 
 # Build frontend
 npm run build
 
-# Build the Frontend container image
-gcloud builds submit --tag gcr.io/[PROJECT_ID]/legislature-frontend .
-
-# Deploy to Cloud Run
-gcloud run deploy legislature-frontend \
-  --image gcr.io/[PROJECT_ID]/legislature-frontend \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --memory 512Mi \
-  --cpu 1
+# Deploy to Firebase Hosting
+firebase deploy --only hosting
 ```
 
-## Set Up Cloud Storage for Media Files
+## Step 5: Set up environment variables
+
+The Cloud Run service needs several environment variables configured in order to properly authenticate with Google Cloud services:
+
+```bash
+# Example values - replace with your actual values
+gcloud run services update media-portal-backend \
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=legislativevideoreviewswithai,GCS_BUCKET_NAME=idaho-legislature-media,USE_CLOUD_STORAGE=true,PREFER_CLOUD_STORAGE=true" \
+  --region=us-west1
+```
+
+### Service Account Update
+
+If you're experiencing permission issues, you may need to update to the Firebase Admin SDK service account:
+
+```bash
+# Update environment variables with the correct service account email
+gcloud run services update media-portal-backend \
+  --set-env-vars="FIREBASE_SERVICE_ACCOUNT=firebase-adminsdk-fbsvc@legislativevideoreviewswithai.iam.gserviceaccount.com" \
+  --region=us-west1
+```
+
+## Step 6: Set Up Cloud Storage for Media Files
 
 1. Create a Cloud Storage bucket for media files:
 
 ```bash
-gsutil mb -l us-central1 gs://[PROJECT_ID]-legislature-media
+gsutil mb -l us-west1 gs://idaho-legislature-media
 ```
 
 2. Configure the bucket for public access (if applicable):
 
 ```bash
-gsutil iam ch allUsers:objectViewer gs://[PROJECT_ID]-legislature-media
+gsutil iam ch allUsers:objectViewer gs://idaho-legislature-media
 ```
 
-3. Update your `.env` file to use Cloud Storage instead of local files:
+## Step 7: Set Up Scheduled Jobs
 
-```
-# Update this in the Secret Manager
-MEDIA_STORAGE=gcs
-GCS_BUCKET=[PROJECT_ID]-legislature-media
-```
-
-## Set Up Scheduled Jobs
-
-1. Create a Cloud Scheduler job for regular updates:
+1. Create a Cloud Scheduler job for daily ingestion:
 
 ```bash
-gcloud scheduler jobs create http daily-transcript-updates \
-  --schedule="0 2 * * *" \
-  --uri="https://legislature-api-[PROJECT_ID].run.app/api/tasks/update-transcripts" \
+gcloud scheduler jobs create http daily-media-ingestion \
+  --schedule="0 4 * * *" \
+  --uri="https://media-portal-backend-[PROJECT_ID].us-west1.run.app/api/admin/ingest" \
   --http-method=POST \
-  --oidc-service-account-email=[SERVICE_ACCOUNT_EMAIL]
-```
-
-## Monitoring and Logging
-
-1. Set up Cloud Monitoring:
-
-```bash
-gcloud monitoring dashboards create --config-from-file=dashboard.json
-```
-
-2. Set up alerts for service health:
-
-```bash
-gcloud alpha monitoring channels create --display-name="Admin Email" --type=email --config=email.address=[YOUR_EMAIL]
+  --message-body='{"recent_only": true, "days": 1}' \
+  --headers="Content-Type=application/json" \
+  --time-zone="America/Boise"
 ```
 
 ## Testing the Deployment
 
 1. Test the API:
-   - Visit `https://legislature-api-[PROJECT_ID].run.app/api/health`
+   - Visit `https://media-portal-backend-[PROJECT_ID].us-west1.run.app/api/health`
 
-2. Test the File Server:
-   - Visit `https://legislature-files-[PROJECT_ID].run.app/health`
+2. Test the Frontend:
+   - Visit your Firebase Hosting URL
 
-3. Test the Frontend:
-   - Visit `https://legislature-frontend-[PROJECT_ID].run.app`
+## Local Testing
 
-## Optimizing Costs
+To test locally, make sure the GOOGLE_APPLICATION_CREDENTIALS environment variable is set:
 
-- Set concurrency and maximum instances to control scaling
-- Configure memory and CPU appropriately for each service
-- Use Cloud Storage lifecycle rules to manage old media files
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/credentials/legislativevideoreviewswithai-80ed70b021b5.json"
+```
+
+Then run the local development server:
+
+```bash
+python src/server.py
+```
