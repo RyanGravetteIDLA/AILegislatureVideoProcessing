@@ -4,37 +4,26 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies
+RUN pip install --no-cache-dir fastapi uvicorn google-cloud-firestore
 
-# Copy the project files
-COPY src/ ./src/
-COPY scripts/ ./scripts/
-COPY .env.example ./.env.example
+# Copy only the necessary files
+COPY src/simple_firestore_api.py ./src/simple_firestore_api.py
+COPY credentials/ ./credentials/
 
-# Create necessary directories
-RUN mkdir -p data/db data/logs
+# Create logs directory
+RUN mkdir -p data/logs
 
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
+ENV PORT=8080
+ENV HOST=0.0.0.0
+ENV GOOGLE_CLOUD_PROJECT=legislativevideoreviewswithai
+ENV GCS_BUCKET_NAME=legislativevideoreviewswithai.firebasestorage.app
 
-# Create a non-root user
-RUN useradd -m appuser
-RUN chown -R appuser:appuser /app
-USER appuser
-
-# Expose the ports that API and File Server will run on
-EXPOSE 5000
-EXPOSE 5001
+# Expose the port
+EXPOSE 8080
 
 # Command to run when container starts
-# Default to running both servers, can be overridden
-CMD ["python", "src/server.py"]
-
-# For running just the API server:
-# CMD ["python", "src/server.py", "--api-only"]
-
-# For running just the file server:
-# CMD ["python", "src/server.py", "--file-only"]
+CMD ["python", "src/simple_firestore_api.py"]

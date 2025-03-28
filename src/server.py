@@ -49,12 +49,37 @@ logger = logging.getLogger('server')
 def run_api(port):
     """Run the API server."""
     logger.info(f"Starting API server on port {port}")
-    uvicorn.run("api:app", host="0.0.0.0", port=port, reload=True)
+    # Use Firestore backend instead of SQLite
+    # First try to rename transcript_db.py to transcript_db_sqlite.py if not already done
+    if not os.path.exists(os.path.join(os.path.dirname(__file__), 'transcript_db_sqlite.py')):
+        try:
+            src_path = os.path.join(os.path.dirname(__file__), 'transcript_db.py')
+            dst_path = os.path.join(os.path.dirname(__file__), 'transcript_db_sqlite.py')
+            if os.path.exists(src_path):
+                import shutil
+                shutil.copy2(src_path, dst_path)
+                logger.info(f"Backed up SQLite implementation to transcript_db_sqlite.py")
+        except Exception as e:
+            logger.warning(f"Could not backup transcript_db.py: {e}")
+    
+    # Now use the Firestore version as transcript_db.py
+    try:
+        src_path = os.path.join(os.path.dirname(__file__), 'transcript_db_firestore.py')
+        dst_path = os.path.join(os.path.dirname(__file__), 'transcript_db.py')
+        if os.path.exists(src_path):
+            import shutil
+            shutil.copy2(src_path, dst_path)
+            logger.info(f"Using Firestore implementation for transcript_db.py")
+    except Exception as e:
+        logger.warning(f"Could not use Firestore transcript_db: {e}")
+    
+    # Run the API server
+    uvicorn.run("src.api_firestore:app", host="0.0.0.0", port=port, reload=True)
 
 def run_file_server(port):
     """Run the file server."""
     logger.info(f"Starting file server on port {port}")
-    uvicorn.run("file_server:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("src.file_server:app", host="0.0.0.0", port=port, reload=True)
 
 def main():
     """

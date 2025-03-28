@@ -59,11 +59,18 @@ def get_firebase_project_id():
         
     # Set the environment variable for the service account if needed
     if not os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'):
-        credentials_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                                  'credentials', 'legislativevideoreviewswithai-80ed70b021b5.json')
-        if os.path.exists(credentials_path):
-            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
-            logger.info(f"Set GOOGLE_APPLICATION_CREDENTIALS to {credentials_path}")
+        # Check for credentials in multiple locations
+        possible_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         'credentials', 'legislativevideoreviewswithai-80ed70b021b5.json'),
+            "/Users/ryangravette/Downloads/legislativevideoreviewswithai-firebase-adminsdk-fbsvc-f12bbdca43.json"
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = path
+                logger.info(f"Set GOOGLE_APPLICATION_CREDENTIALS to {path}")
+                break
     
     return project_id
 

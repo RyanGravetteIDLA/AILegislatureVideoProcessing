@@ -1,6 +1,6 @@
 """
-API module for serving media data to the frontend application.
-Provides RESTful endpoints for videos, audio, and transcripts.
+API module for serving media data to the frontend application - Firestore Version.
+Provides RESTful endpoints for videos, audio, and transcripts using Firestore.
 
 This module implements a FastAPI application that serves structured data about 
 Idaho Legislature media content, including videos, audio recordings, and transcripts.
@@ -20,12 +20,30 @@ import logging
 import sys
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from fastapi import FastAPI, HTTPException, Query, Depends
+from fastapi import FastAPI, HTTPException, Query, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# Local imports - use Firestore instead of SQLite
+# Local imports
 from firestore_db import get_firestore_db, FirestoreDB
+
+# Add scripts directory to path for imports
+scripts_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts'))
+sys.path.insert(0, scripts_dir)
+
+# Define a fallback daily_ingest function in case import fails
+def fallback_daily_ingest(**kwargs):
+    logging.error("Using fallback daily_ingest function - real implementation not available")
+    return {"status": "error", "message": "daily_cloud_ingest module not available"}
+
+# Try to import the real daily_ingest function
+try:
+    from daily_cloud_ingest import daily_ingest
+    logging.info("Successfully imported daily_cloud_ingest")
+except ImportError as e:
+    logging.error(f"Error importing daily_cloud_ingest: {e}")
+    daily_ingest = fallback_daily_ingest
+    # Continue without the import - the API will still function but the ingest endpoint will use fallback
 
 # Configure logging
 # Create logs directory if it doesn't exist
@@ -36,18 +54,18 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(os.path.join(logs_dir, 'api.log')),
+        logging.FileHandler(os.path.join(logs_dir, 'api_firestore.log')),
         logging.StreamHandler()
     ]
 )
 
-logger = logging.getLogger('api')
+logger = logging.getLogger('api_firestore')
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Idaho Legislature Media API",
-    description="API for accessing Idaho Legislature media content",
-    version="1.0.0"
+    title="Idaho Legislature Media API (Firestore)",
+    description="API for accessing Idaho Legislature media content using Firestore",
+    version="2.0.0"
 )
 
 # Add CORS middleware to allow cross-origin requests from the frontend
@@ -76,7 +94,7 @@ class MediaBase(BaseModel):
         category: Category of the media (e.g., House Chambers, Committee)
         date: Optional date when the media was recorded/modified
     """
-    id: str  # Using string IDs for Firestore documents
+    id: str
     title: str
     description: Optional[str] = None
     year: str
@@ -382,7 +400,71 @@ def api_version():
         "gcp_project": os.environ.get("GOOGLE_CLOUD_PROJECT", "unknown")
     }
 
+class IngestConfig(BaseModel):
+    """Configuration for the daily ingest process."""
+    recent_only: bool = True
+    days: int = 1
+    rate_limit: float = 1.0
+    skip_existing: bool = True
+    batch_size: int = 5
+    download_new: bool = True
+
+@app.post("/api/admin/ingest")
+async def trigger_daily_ingest(
+    background_tasks: BackgroundTasks,
+    config: IngestConfig = IngestConfig()
+):
+    """
+    Trigger the daily ingest process to upload media files to Cloud Storage.
+    
+    This endpoint is designed to be called by Cloud Scheduler to automate
+    the daily ingestion of new media files. It runs the ingest process in the 
+    background to avoid timeout issues.
+    
+    Args:
+        background_tasks: FastAPI background tasks handler
+        config: Configuration options for the ingest process
+        
+    Returns:
+        dict: A response indicating the ingest process has been started
+    """
+    try:
+        # Check if the daily_ingest function was imported successfully
+        if 'daily_ingest' not in globals():
+            raise HTTPException(
+                status_code=500, 
+                detail="Daily ingest functionality is not available."
+            )
+        
+        # Add the ingest task to background tasks
+        background_tasks.add_task(
+            daily_ingest,
+            recent_only=config.recent_only,
+            days=config.days,
+            rate_limit=config.rate_limit,
+            skip_existing=config.skip_existing,
+            batch_size=config.batch_size,
+            download_new=config.download_new
+        )
+        
+        # Log that the process was started
+        logger.info(f"Daily ingest process started with config: {config.dict()}")
+        
+        return {
+            "status": "success",
+            "message": "Daily ingest process started in the background",
+            "timestamp": datetime.now().isoformat(),
+            "config": config.dict()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error starting daily ingest process: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to start daily ingest process: {str(e)}"
+        )
+
 if __name__ == "__main__":
     import uvicorn
     # Start the server
-    uvicorn.run("api:app", host="0.0.0.0", port=5000, reload=True)
+    uvicorn.run("api_firestore:app", host="0.0.0.0", port=5000, reload=True)
