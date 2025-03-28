@@ -1,13 +1,14 @@
-# Idaho Legislature Media Downloader
+# Idaho Legislature Media Portal
 
-A comprehensive Python toolset for downloading, processing, and archiving Idaho legislative session videos. This project allows you to:
+A comprehensive platform for downloading, processing, transcribing, serving, and analyzing Idaho legislative session videos. This project allows you to:
 
 1. **Download legislative session videos** from the Idaho Legislature website
 2. **Convert videos to audio** for easier processing 
 3. **Transcribe audio to text** using Google's Gemini AI models
 4. **Store all media** (videos, audio, transcripts) on Google Drive
 5. **Organize content** by year, committee, and session
-6. **Automate the workflow** with scheduled tasks
+6. **Serve media content** through a modern web interface
+7. **Automate the workflow** with scheduled tasks
 
 Perfect for researchers, journalists, archivists, and anyone interested in preserving and analyzing legislative proceedings.
 
@@ -177,12 +178,20 @@ python scripts/download_year_category.py 2025 "House Chambers" --limit 5
   - `downloader.py` - Video downloading engine
   - `transcript_db.py` - Database for tracking transcript processing
   - `drive_storage.py` - Google Drive integration
+  - `api.py` - REST API for the frontend
+  - `file_server.py` - Serves media files
+  - `server.py` - Combined server entry point
 - `scripts/` - Command-line tools for various functions
 - `data/` - Data storage directory:
   - `data/downloads/` - Downloaded videos and audio files
   - `data/logs/` - Processing logs
   - `data/db/` - SQLite database for transcript tracking
   - `data/service_account.json` - Google service account credentials (you create this)
+- `frontend/` - Vue.js frontend application:
+  - `frontend/src/views/` - Main application views
+  - `frontend/src/components/` - Reusable UI components
+  - `frontend/src/stores/` - Pinia state stores
+  - `frontend/src/router/` - Vue Router configuration
 
 ## Workflow
 

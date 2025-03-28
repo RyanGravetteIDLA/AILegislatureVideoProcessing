@@ -6,3 +6,11 @@ keyring>=25.6.0
 google-api-python-client>=2.165.0
 google-auth-oauthlib>=1.2.0
 sqlalchemy>=2.0.39
+
+# API and Web Framework
+fastapi>=0.104.0
+uvicorn>=0.23.2
+pydantic>=2.4.2
+python-dotenv>=1.0.0
+python-multipart>=0.0.6
+starlette>=0.27.0
