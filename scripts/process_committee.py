@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Process all videos for a specific year and committee.
+Process videos for a specific year, committee, and optionally a specific day.
 
 This script provides an interactive workflow to:
 1. Check for missing videos in a selected year and committee
-2. Download any missing videos
-3. Convert videos to audio
-4. Transcribe audio files
+2. Optionally filter to a specific day only
+3. Download any missing videos
+4. Convert videos to audio
+5. Transcribe audio files
 
 It handles the entire process from checking to transcription in one automated workflow.
+You can either process all videos for a year/committee or focus on a single specific day.
 """
 
 import os
@@ -332,6 +334,7 @@ def main():
         description="Process all videos and audio for a specific year and committee")
     parser.add_argument('--year', help="Year of the meetings")
     parser.add_argument('--category', help="Category of the meetings")
+    parser.add_argument('--day', help="Specific day to process (format: 'Month Day', e.g., 'January 6')")
     parser.add_argument('--output-dir', default="data/downloads",
                         help="Directory to save downloads to (default: data/downloads)")
     parser.add_argument('--model', default="gemini-2.0-flash",
@@ -395,6 +398,47 @@ def main():
         else:
             category = selection
     
+    # Prompt for specific day if not provided
+    target_day = args.day
+    if not target_day:
+        use_specific_day = get_user_input("Process a specific day only?", 
+                                         options=["y", "n"], 
+                                         default="n")
+        
+        if use_specific_day.lower() == "y":
+            # Get available meetings to show available dates
+            available_meetings = downloader.get_all_meetings(year, category)
+            
+            if available_meetings:
+                # Extract unique dates for display
+                unique_dates = set()
+                for meeting in available_meetings:
+                    date_parts = meeting["date"].split(",")
+                    if len(date_parts) >= 1:
+                        date_only = date_parts[0].strip()
+                        unique_dates.add(date_only)
+                
+                # Sort dates for display
+                sorted_dates = sorted(list(unique_dates))
+                
+                print("\nAvailable dates:")
+                for i, date in enumerate(sorted_dates, 1):
+                    print(f"  {i}. {date}")
+                
+                # Get selection
+                selection = get_user_input("Select date")
+                
+                # Check if the input is a number
+                if selection.isdigit() and 1 <= int(selection) <= len(sorted_dates):
+                    target_day = sorted_dates[int(selection) - 1]
+                else:
+                    target_day = selection
+            else:
+                print("\nNo meetings found. Please enter date manually.")
+                target_day = get_user_input("Enter date (format: 'Month Day', e.g., 'January 6')")
+        else:
+            target_day = None
+    
     # Confirm transcription
     transcribe = not args.skip_transcription
     if transcribe and not args.yes:
@@ -439,6 +483,10 @@ def main():
     print(f"\nWill process:")
     print(f"  - Year: {year}")
     print(f"  - Category: {category}")
+    if target_day:
+        print(f"  - Specific day: {target_day}")
+    else:
+        print(f"  - Days: All available")
     print(f"  - Transcription: {'Enabled' if transcribe else 'Disabled'}")
     if transcribe:
         print(f"  - Transcription model: {model_name}")
@@ -453,15 +501,82 @@ def main():
     
     # Process the committee
     start_time = time.time()
-    downloaded, converted, transcribed = process_committee(
-        year=year,
-        category=category,
-        output_dir=args.output_dir,
-        transcribe=transcribe,
-        model_name=model_name,
-        limit=args.limit,
-        skip_existing=not args.process_existing
-    )
+    
+    if target_day:
+        # If a specific day is requested, use the direct download method
+        print(f"\nProcessing specific day: {target_day}")
+        downloader = IdahoLegislatureDownloader(
+            output_dir=args.output_dir,
+            convert_to_audio=True,
+            audio_format="mp3"
+        )
+        
+        success = downloader.download_specific_meeting(year, category, target_day)
+        
+        if success:
+            print(f"Successfully downloaded {target_day}")
+            downloaded = 1
+            converted = 1
+            
+            # Handle transcription if requested
+            transcribed = 0
+            if transcribe:
+                # Get API key for transcription
+                api_key = get_api_key()
+                if not api_key:
+                    print("Warning: No API key found in keychain. Transcription will be skipped.")
+                else:
+                    try:
+                        # Create transcriber
+                        transcriber = AudioTranscriber(api_key, model_name)
+                        
+                        # Find the audio directory for this meeting
+                        # We need to search for directories that might match this date
+                        date_dirs = []
+                        category_dir = os.path.join(args.output_dir, year, category)
+                        if os.path.exists(category_dir):
+                            for dirname in os.listdir(category_dir):
+                                if target_day in dirname and os.path.isdir(os.path.join(category_dir, dirname)):
+                                    date_dirs.append(os.path.join(category_dir, dirname))
+                        
+                        for meeting_dir in date_dirs:
+                            audio_dir = os.path.join(meeting_dir, "audio")
+                            if os.path.exists(audio_dir):
+                                # Find and transcribe audio files
+                                audio_files = glob.glob(os.path.join(audio_dir, "*.mp3"))
+                                for audio_file in audio_files:
+                                    # Check if already transcribed
+                                    transcription_path = os.path.splitext(audio_file)[0] + "_transcription.txt"
+                                    if os.path.exists(transcription_path) and not args.process_existing:
+                                        print(f"Skipping transcription - already exists")
+                                        continue
+                                    
+                                    try:
+                                        # Process the audio file
+                                        transcription = transcriber.transcribe_audio(audio_file)
+                                        transcriber.save_transcription(audio_file, transcription)
+                                        print(f"Transcription completed for {os.path.basename(audio_file)}")
+                                        transcribed += 1
+                                    except Exception as e:
+                                        print(f"Error transcribing {audio_file}: {e}")
+                    except Exception as e:
+                        print(f"Error during transcription: {e}")
+        else:
+            print(f"Failed to download {target_day}")
+            downloaded = 0
+            converted = 0
+            transcribed = 0
+    else:
+        # Process all meetings as before
+        downloaded, converted, transcribed = process_committee(
+            year=year,
+            category=category,
+            output_dir=args.output_dir,
+            transcribe=transcribe,
+            model_name=model_name,
+            limit=args.limit,
+            skip_existing=not args.process_existing
+        )
     end_time = time.time()
     
     # Print summary
