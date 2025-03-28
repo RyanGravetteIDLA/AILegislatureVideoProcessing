@@ -1,6 +1,18 @@
 """
 API module for serving media data to the frontend application.
 Provides RESTful endpoints for videos, audio, and transcripts.
+
+This module implements a FastAPI application that serves structured data about 
+Idaho Legislature media content, including videos, audio recordings, and transcripts.
+It connects to the SQLite database via the transcript_db module and provides
+filtering capabilities by year, category, and search terms.
+
+Key features:
+- RESTful API design with JSON responses
+- Filtering and search capabilities
+- Error handling and logging
+- CORS support for frontend integration
+- Health check endpoint for monitoring
 """
 
 import os
@@ -16,11 +28,15 @@ from sqlalchemy.orm import Session
 from transcript_db import get_all_transcripts, Session as DBSession, Transcript
 
 # Configure logging
+# Create logs directory if it doesn't exist
+logs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'logs')
+os.makedirs(logs_dir, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(os.path.join('data', 'logs', 'api.log')),
+        logging.FileHandler(os.path.join(logs_dir, 'api.log')),
         logging.StreamHandler()
     ]
 )
@@ -53,6 +69,17 @@ def get_db():
 
 # Data models for API responses
 class MediaBase(BaseModel):
+    """
+    Base model for all media types with common properties.
+    
+    Attributes:
+        id: Unique identifier for the media item
+        title: Title of the media, typically includes category and session name
+        description: Optional detailed description of the content
+        year: Legislative year the media belongs to
+        category: Category of the media (e.g., House Chambers, Committee)
+        date: Optional date when the media was recorded/modified
+    """
     id: int
     title: str
     description: Optional[str] = None
@@ -64,15 +91,36 @@ class MediaBase(BaseModel):
         orm_mode = True
 
 class VideoItem(MediaBase):
+    """
+    Model for video items, extends MediaBase with video-specific properties.
+    
+    Attributes:
+        duration: Duration of the video in HH:MM:SS format
+        thumbnail: Optional URL to a thumbnail image
+        url: URL where the video can be accessed
+    """
     duration: Optional[str] = None
     thumbnail: Optional[str] = None
     url: str
 
 class AudioItem(MediaBase):
+    """
+    Model for audio items, extends MediaBase with audio-specific properties.
+    
+    Attributes:
+        duration: Duration of the audio in HH:MM:SS format
+        url: URL where the audio can be accessed
+    """
     duration: Optional[str] = None
     url: str
 
 class TranscriptItem(MediaBase):
+    """
+    Model for transcript items, extends MediaBase.
+    
+    Attributes:
+        url: URL where the transcript can be accessed
+    """
     url: str
 
 # Helper functions
@@ -83,12 +131,24 @@ def format_date(timestamp: Optional[datetime]) -> Optional[str]:
     return None
 
 def transcript_to_model(transcript: Transcript) -> Dict[str, Any]:
-    """Convert a Transcript database model to API response model."""
+    """
+    Convert a Transcript database model to API response model.
+    
+    This function maps data from the database model to the format expected by the API.
+    It constructs title, URL, and other fields based on the transcript properties.
+    
+    Args:
+        transcript: A Transcript database model instance
+        
+    Returns:
+        Dict containing all fields needed for the API response models
+    """
     session_title = f"{transcript.category} - {transcript.session_name}"
     
     # Determine the media type based on file extension
     file_ext = os.path.splitext(transcript.file_path)[1].lower()
     
+    # Construct base data common to all media types
     base_data = {
         "id": transcript.id,
         "title": session_title,
@@ -98,13 +158,14 @@ def transcript_to_model(transcript: Transcript) -> Dict[str, Any]:
         "date": format_date(transcript.last_modified)
     }
     
-    # For now, use file_path as URL (will be updated with actual URLs later)
+    # Construct file URL using a consistent pattern for file access
+    # This path will be handled by the file server component
     base_url = f"/api/files/{transcript.year}/{transcript.category}/{transcript.file_name}"
     
     return {
         **base_data,
         "url": base_url,
-        "duration": "00:00:00"  # Placeholder
+        "duration": "00:00:00"  # Placeholder, to be updated with actual duration when available
     }
 
 # API Routes
@@ -117,7 +178,22 @@ def get_videos(
 ):
     """
     Get a list of available videos.
-    Optionally filter by year, category, or search term.
+    
+    This endpoint returns all available video files, with optional filtering capabilities.
+    Videos can be filtered by legislative year, category (like "House Chambers"), 
+    or by a text search that matches against session name or category.
+    
+    Args:
+        db: Database session dependency
+        year: Optional filter for specific legislative year
+        category: Optional filter for specific category
+        search: Optional text search term
+        
+    Returns:
+        List of VideoItem objects with metadata and access URLs
+        
+    Raises:
+        HTTPException: If there's an error retrieving or processing the videos
     """
     try:
         # Get all transcripts
@@ -293,7 +369,22 @@ def get_filter_options(db: Session = Depends(get_db)):
 
 @app.get("/api/stats")
 def get_statistics(db: Session = Depends(get_db)):
-    """Get statistics about the available media."""
+    """
+    Get statistics about the available media.
+    
+    This endpoint provides count statistics for the different types of media files
+    available in the system. This is useful for dashboard displays, monitoring,
+    and general system status reporting.
+    
+    Args:
+        db: Database session dependency
+        
+    Returns:
+        Dictionary containing counts of videos, audio files, transcripts, and total items
+        
+    Raises:
+        HTTPException: If there's an error retrieving or calculating the statistics
+    """
     try:
         transcripts = get_all_transcripts()
         

@@ -10,32 +10,39 @@ const mediaStore = useMediaStore()
 const selectedTranscript = ref(null)
 const isDetailView = ref(false)
 
-// Get transcripts from store
+// Local transcript data for fallback
+const mockTranscripts = [
+  {
+    id: 301,
+    title: "Test Transcript 1",
+    description: "This is a test transcript file",
+    date: "2025-03-27",
+    category: "Test Category",
+    year: "2025",
+    url: "https://example.com/test1.pdf"
+  },
+  {
+    id: 302,
+    title: "Test Transcript 2",
+    description: "This is another test transcript file",
+    date: "2025-03-28",
+    category: "Test Category",
+    year: "2025",
+    url: "https://example.com/test2.pdf"
+  }
+]
+
+// Get transcripts from store with fallback to mock data
 const transcripts = computed(() => {
-  // Force return mock data for testing
-  const mockTranscripts = [
-    {
-      id: 301,
-      title: "Test Transcript 1",
-      description: "This is a test transcript file",
-      date: "2025-03-27",
-      category: "Test Category",
-      year: "2025",
-      url: "https://example.com/test1.pdf"
-    },
-    {
-      id: 302,
-      title: "Test Transcript 2",
-      description: "This is another test transcript file",
-      date: "2025-03-28",
-      category: "Test Category",
-      year: "2025",
-      url: "https://example.com/test2.pdf"
-    }
-  ];
-  return mockTranscripts;
-  // Uncomment to use real data
-  // return mediaStore.filteredTranscripts
+  // Check if store has transcripts
+  if (mediaStore.transcripts.length > 0) {
+    console.log('Using filtered transcripts from store:', mediaStore.filteredTranscripts.length)
+    return mediaStore.filteredTranscripts
+  }
+  
+  // If empty or undefined, use mock data
+  console.log('Using mock transcript data')
+  return mockTranscripts
 })
 
 // Filter state

@@ -10,23 +10,29 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+# Set up directory paths
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+logs_dir = os.path.join(base_dir, 'data', 'logs')
+db_dir = os.path.join(base_dir, 'data', 'db')
+
+# Create directories if they don't exist
+os.makedirs(logs_dir, exist_ok=True)
+os.makedirs(db_dir, exist_ok=True)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(os.path.join('data', 'logs', 'transcript_db.log')),
+        logging.FileHandler(os.path.join(logs_dir, 'transcript_db.log')),
         logging.StreamHandler()
     ]
 )
 
 logger = logging.getLogger('transcript_db')
 
-# Create database directory if it doesn't exist
-os.makedirs(os.path.join('data', 'db'), exist_ok=True)
-
 # Database setup
-DB_PATH = os.path.join('data', 'db', 'transcripts.db')
+DB_PATH = os.path.join(db_dir, 'transcripts.db')
 engine = create_engine(f'sqlite:///{DB_PATH}')
 Base = declarative_base()
 Session = sessionmaker(bind=engine)

@@ -30,11 +30,17 @@ from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-# Try to import the GCS module, but don't fail if it's not available
+# Add project root to path for imports
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Try to import the GCS and secrets modules, but don't fail if they're not available
 try:
-    from cloud_storage import get_default_gcs_client
+    from src.cloud_storage import get_default_gcs_client
+    from src.secrets_manager import get_cloud_storage_settings
     gcs_available = True
-except ImportError:
+except ImportError as e:
+    print(f"Warning: Could not import cloud storage modules: {e}")
     gcs_available = False
 
 # Configure logging
@@ -77,10 +83,25 @@ if gcs_available:
         logger.error(f"Failed to initialize GCS client: {e}")
         gcs_available = False
 
-# Get cloud storage preference from environment
-USE_CLOUD_STORAGE = os.environ.get('USE_CLOUD_STORAGE', 'false').lower() in ('true', '1', 'yes')
-CLOUD_STORAGE_PUBLIC = os.environ.get('CLOUD_STORAGE_PUBLIC', 'false').lower() in ('true', '1', 'yes')
-PREFER_CLOUD_STORAGE = os.environ.get('PREFER_CLOUD_STORAGE', 'false').lower() in ('true', '1', 'yes')
+# Get cloud storage preferences from secrets manager or fall back to environment variables
+if gcs_available:
+    try:
+        # Get settings from secrets manager
+        cloud_settings = get_cloud_storage_settings()
+        USE_CLOUD_STORAGE = cloud_settings.get('use_cloud_storage', False)
+        CLOUD_STORAGE_PUBLIC = cloud_settings.get('cloud_storage_public', False)
+        PREFER_CLOUD_STORAGE = cloud_settings.get('prefer_cloud_storage', False)
+    except Exception as e:
+        logger.warning(f"Failed to get cloud settings from secrets manager: {e}")
+        # Fall back to environment variables
+        USE_CLOUD_STORAGE = os.environ.get('USE_CLOUD_STORAGE', 'false').lower() in ('true', '1', 'yes')
+        CLOUD_STORAGE_PUBLIC = os.environ.get('CLOUD_STORAGE_PUBLIC', 'false').lower() in ('true', '1', 'yes')
+        PREFER_CLOUD_STORAGE = os.environ.get('PREFER_CLOUD_STORAGE', 'false').lower() in ('true', '1', 'yes')
+else:
+    # Default values if GCS is not available
+    USE_CLOUD_STORAGE = False
+    CLOUD_STORAGE_PUBLIC = False
+    PREFER_CLOUD_STORAGE = False
 
 logger.info(f"Cloud storage configuration: Enabled={USE_CLOUD_STORAGE}, Public={CLOUD_STORAGE_PUBLIC}, Preferred={PREFER_CLOUD_STORAGE}")
 

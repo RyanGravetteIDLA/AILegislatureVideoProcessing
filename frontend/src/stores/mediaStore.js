@@ -14,11 +14,28 @@ const api = axios.create({
   }
 })
 
+// Add request interceptor for debugging
+api.interceptors.request.use(
+  config => {
+    console.log('API Request:', config.method.toUpperCase(), config.url)
+    return config
+  },
+  error => {
+    console.error('API Request Error:', error)
+    return Promise.reject(error)
+  }
+)
+
 // Add a response interceptor for error handling
 api.interceptors.response.use(
-  response => response,
+  response => {
+    console.log('API Response:', response.status, response.config.url)
+    return response
+  },
   error => {
-    console.error('API Error:', error.response || error.message)
+    console.error('API Error:', 
+      error.response ? `${error.response.status} - ${error.response.statusText}` : error.message, 
+      error.config ? error.config.url : '')
     return Promise.reject(error)
   }
 )

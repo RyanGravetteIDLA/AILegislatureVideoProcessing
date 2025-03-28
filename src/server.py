@@ -1,6 +1,23 @@
 """
 Combined server module that runs both the API and file server.
 Provides a single entry point for running the backend services.
+
+This module serves as the main entry point for running the Idaho Legislature Media
+backend services. It can launch both the API server and file server concurrently
+using Python's multiprocessing, or run just one of them based on command-line arguments.
+
+Features:
+- Environment variable configuration via dotenv
+- Command-line argument support for flexible deployment
+- Concurrent execution of both services
+- Proper process management and error handling
+- Configurable ports for each service
+
+Usage examples:
+- Run both services:    python server.py
+- Run only API:         python server.py --api-only
+- Run only file server: python server.py --file-only
+- Custom ports:         python server.py --api-port 8000 --file-port 8001
 """
 
 import os
@@ -14,11 +31,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configure logging
+# Create logs directory if it doesn't exist
+logs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'logs')
+os.makedirs(logs_dir, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(os.path.join('data', 'logs', 'server.log')),
+        logging.FileHandler(os.path.join(logs_dir, 'server.log')),
         logging.StreamHandler()
     ]
 )
@@ -36,7 +57,21 @@ def run_file_server(port):
     uvicorn.run("file_server:app", host="0.0.0.0", port=port, reload=True)
 
 def main():
-    """Main entry point for the server."""
+    """
+    Main entry point for the server.
+    
+    This function:
+    1. Parses command-line arguments
+    2. Determines which servers to run based on arguments
+    3. Launches server process(es) either individually or concurrently
+    4. Handles process lifecycle and exceptions
+    
+    Command-line arguments:
+    - --api-port: Specify custom port for the API server
+    - --file-port: Specify custom port for the file server
+    - --api-only: Run only the API server
+    - --file-only: Run only the file server
+    """
     parser = argparse.ArgumentParser(description="Run the Idaho Legislature Media backend services")
     parser.add_argument("--api-port", type=int, default=int(os.getenv("API_PORT", 5000)),
                         help="Port for the API server (default: 5000)")
@@ -53,14 +88,21 @@ def main():
         elif args.file_only:
             run_file_server(args.file_port)
         else:
-            # Run both servers concurrently
+            # Run both servers concurrently using Python's multiprocessing
+            # This allows each server to run in its own process with separate resources
+            logger.info(f"Starting both API server (port {args.api_port}) and file server (port {args.file_port})...")
+            
+            # Create process objects for each server
             api_process = multiprocessing.Process(target=run_api, args=(args.api_port,))
             file_process = multiprocessing.Process(target=run_file_server, args=(args.file_port,))
             
+            # Start both processes
             api_process.start()
             file_process.start()
             
             # Wait for both processes to complete
+            # This blocks the main thread until both servers are terminated
+            # which allows for proper cleanup on exit
             api_process.join()
             file_process.join()
     

@@ -10,34 +10,41 @@ const mediaStore = useMediaStore()
 const selectedVideo = ref(null)
 const isDetailView = ref(false)
 
-// Get videos from store
+// Local video data for fallback
+const mockVideos = [
+  {
+    id: 101,
+    title: "Test Video 1",
+    description: "This is a test video",
+    date: "2025-03-27",
+    category: "Test Category",
+    year: "2025",
+    duration: "01:30:00",
+    url: "https://example.com/test1.mp4"
+  },
+  {
+    id: 102,
+    title: "Test Video 2",
+    description: "This is another test video",
+    date: "2025-03-28",
+    category: "Test Category",
+    year: "2025",
+    duration: "00:45:00",
+    url: "https://example.com/test2.mp4"
+  }
+]
+
+// Get videos from store with fallback to mock data
 const videos = computed(() => {
-  // Force return mock data for testing
-  const mockVideos = [
-    {
-      id: 101,
-      title: "Test Video 1",
-      description: "This is a test video",
-      date: "2025-03-27",
-      category: "Test Category",
-      year: "2025",
-      duration: "01:30:00",
-      url: "https://example.com/test1.mp4"
-    },
-    {
-      id: 102,
-      title: "Test Video 2",
-      description: "This is another test video",
-      date: "2025-03-28",
-      category: "Test Category",
-      year: "2025",
-      duration: "00:45:00",
-      url: "https://example.com/test2.mp4"
-    }
-  ];
-  return mockVideos;
-  // Uncomment to use real data
-  // return mediaStore.filteredVideos
+  // Check if store has videos
+  if (mediaStore.videos.length > 0) {
+    console.log('Using filtered videos from store:', mediaStore.filteredVideos.length)
+    return mediaStore.filteredVideos
+  }
+  
+  // If empty or undefined, use mock data
+  console.log('Using mock video data')
+  return mockVideos
 })
 
 // Filter state

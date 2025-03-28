@@ -12,6 +12,12 @@ import json
 import logging
 from pathlib import Path
 
+# Add parent directory to path so we can import our module
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Import the centralized secrets manager
+from src.secrets_manager import get_github_credentials
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -25,31 +31,52 @@ SAMPLE_CONFIG_FILE = '.github-config.sample'
 
 
 def load_config():
-    """Load GitHub configuration from the config file."""
-    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), CONFIG_FILE)
-    
-    if not os.path.exists(config_path):
-        logger.error(f"Configuration file {CONFIG_FILE} not found.")
-        logger.error(f"Please copy {SAMPLE_CONFIG_FILE} to {CONFIG_FILE} and update it with your settings.")
-        return None
-    
-    config = {}
-    with open(config_path, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
-                # Remove quotes if present
-                config[key.strip()] = value.strip().strip('"').strip("'")
-    
-    required_keys = ['GITHUB_USERNAME', 'REPO_NAME', 'GITHUB_TOKEN']
-    missing_keys = [key for key in required_keys if key not in config]
-    
-    if missing_keys:
-        logger.error(f"Missing required configuration: {', '.join(missing_keys)}")
-        return None
-    
-    return config
+    """Load GitHub configuration from the secrets manager."""
+    try:
+        # Get credentials from the centralized secrets manager
+        config = get_github_credentials()
+        
+        if not config:
+            logger.error("Failed to retrieve GitHub credentials from secrets manager.")
+            return None
+        
+        # Convert to uppercase keys for backward compatibility
+        return {
+            'GITHUB_USERNAME': config['username'],
+            'REPO_NAME': config['repo_name'],
+            'GITHUB_TOKEN': config['token'],
+            'REPO_DESCRIPTION': config['description'],
+            'REPO_VISIBILITY': config['visibility']
+        }
+        
+    except Exception as e:
+        logger.error(f"Error loading GitHub configuration: {e}")
+        
+        # Try legacy file-based config as fallback
+        config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), CONFIG_FILE)
+        
+        if not os.path.exists(config_path):
+            logger.error(f"Configuration file {CONFIG_FILE} not found.")
+            logger.error(f"Please run 'python src/secrets_manager.py test --github' to set up GitHub credentials.")
+            return None
+        
+        config = {}
+        with open(config_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    # Remove quotes if present
+                    config[key.strip()] = value.strip().strip('"').strip("'")
+        
+        required_keys = ['GITHUB_USERNAME', 'REPO_NAME', 'GITHUB_TOKEN']
+        missing_keys = [key for key in required_keys if key not in config]
+        
+        if missing_keys:
+            logger.error(f"Missing required configuration: {', '.join(missing_keys)}")
+            return None
+        
+        return config
 
 
 def run_command(command, silent=False):

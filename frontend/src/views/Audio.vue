@@ -10,34 +10,41 @@ const mediaStore = useMediaStore()
 const selectedAudio = ref(null)
 const isDetailView = ref(false)
 
-// Get audio files from store
+// Local audio data for fallback
+const mockAudio = [
+  {
+    id: 201,
+    title: "Test Audio 1",
+    description: "This is a test audio file",
+    date: "2025-03-27",
+    category: "Test Category",
+    year: "2025",
+    duration: "01:30:00",
+    url: "https://example.com/test1.mp3"
+  },
+  {
+    id: 202,
+    title: "Test Audio 2",
+    description: "This is another test audio file",
+    date: "2025-03-28",
+    category: "Test Category",
+    year: "2025",
+    duration: "00:45:00",
+    url: "https://example.com/test2.mp3"
+  }
+]
+
+// Get audio files from store with fallback to mock data
 const audioFiles = computed(() => {
-  // Force return mock data for testing
-  const mockAudio = [
-    {
-      id: 201,
-      title: "Test Audio 1",
-      description: "This is a test audio file",
-      date: "2025-03-27",
-      category: "Test Category",
-      year: "2025",
-      duration: "01:30:00",
-      url: "https://example.com/test1.mp3"
-    },
-    {
-      id: 202,
-      title: "Test Audio 2",
-      description: "This is another test audio file",
-      date: "2025-03-28",
-      category: "Test Category",
-      year: "2025",
-      duration: "00:45:00",
-      url: "https://example.com/test2.mp3"
-    }
-  ];
-  return mockAudio;
-  // Uncomment to use real data
-  // return mediaStore.filteredAudio
+  // Check if store has audio files
+  if (mediaStore.audio.length > 0) {
+    console.log('Using filtered audio from store:', mediaStore.filteredAudio.length)
+    return mediaStore.filteredAudio
+  }
+  
+  // If empty or undefined, use mock data
+  console.log('Using mock audio data')
+  return mockAudio
 })
 
 // Filter state

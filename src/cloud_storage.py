@@ -11,12 +11,16 @@ from datetime import datetime
 from google.cloud import storage
 from google.cloud.exceptions import NotFound
 
-# Try to import Secret Manager, don't fail if not available
+# Add project root to path for imports
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Try to import our unified secrets manager
 try:
-    from google.cloud import secretmanager
-    secret_manager_available = True
+    from src.secrets_manager import get_cloud_storage_settings, get_service_account_content
+    secrets_manager_available = True
 except ImportError:
-    secret_manager_available = False
+    secrets_manager_available = False
 
 # Set up directory paths
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -250,15 +254,38 @@ class GoogleCloudStorage:
 
 def get_default_gcs_client():
     """
-    Get the default GCS client using environment variables.
+    Get the default GCS client using secrets manager or environment variables.
     
     Returns:
         GoogleCloudStorage: A configured GCS client instance
     """
-    # Get bucket name from environment variable or use default
-    bucket_name = os.environ.get('GCS_BUCKET_NAME', 'idaho-legislature-media')
+    # Try to get settings from secrets manager
+    if secrets_manager_available:
+        try:
+            cloud_settings = get_cloud_storage_settings()
+            bucket_name = cloud_settings.get('bucket_name')
+            
+            # Try to get service account content from secrets manager
+            sa_content = get_service_account_content('gcs')
+            
+            if sa_content and bucket_name:
+                # Create a temporary file for the service account
+                import tempfile
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
+                    json.dump(sa_content, temp_file)
+                    credentials_path = temp_file.name
+                    
+                # Create the client with these credentials
+                client = GoogleCloudStorage(bucket_name, credentials_path)
+                
+                # Clean up the temporary file
+                os.unlink(credentials_path)
+                return client
+        except Exception as e:
+            logger.warning(f"Failed to initialize GCS client from secrets manager: {e}")
     
-    # Get credentials path from environment variable or use None for application default
+    # Fall back to environment variables
+    bucket_name = os.environ.get('GCS_BUCKET_NAME', 'idaho-legislature-media')
     credentials_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
     
     return GoogleCloudStorage(bucket_name, credentials_path)

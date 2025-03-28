@@ -74,6 +74,26 @@ sudo apt-get install ffmpeg
      python scripts/manage_drive_service.py verify
      ```
 
+6. (Optional) Set up Google Cloud Storage:
+   - Create a project in the [Google Cloud Console](https://console.cloud.google.com/)
+   - Enable the Google Cloud Storage API
+   - Create a bucket to store your media files
+   - Create a service account with Storage Admin permissions
+   - Create a key for the service account (JSON format)
+   - Download the service account key and save as `data/gcs_service_account.json`
+   - Configure your cloud storage settings:
+     ```bash
+     python scripts/manage_cloud_storage.py setup
+     ```
+   - Or use the centralized secrets manager:
+     ```bash
+     python src/secrets_manager.py test --cloud
+     ```
+   - Verify your setup:
+     ```bash
+     python scripts/manage_cloud_storage.py verify
+     ```
+
 ## Usage
 
 ### Download a specific date's session
@@ -94,21 +114,49 @@ python scripts/download_specific_date.py 2025 "House Chambers" "January 7" --con
 python scripts/download_missing_videos.py --convert-audio
 ```
 
-### API Key Management
+### Secrets Management
+
+This project uses a centralized secrets management system that securely stores all credentials and API keys in your system's keychain. This approach is more secure than storing credentials in environment variables or configuration files.
+
+#### Migrating to the Centralized Secrets Manager
+
+If you're upgrading from a previous version, you can migrate your existing secrets to the new system:
+
+```bash
+python scripts/migrate_secrets.py
+```
+
+#### Managing API Keys
 
 Store your Google API key in the system keychain:
 ```bash
-python scripts/manage_api_keys.py store
+python src/secrets_manager.py test --api-keys
 ```
 
 Verify your API key is stored correctly:
 ```bash
-python scripts/manage_api_keys.py get
+python src/secrets_manager.py test --api-keys
 ```
 
-Delete your API key from the keychain:
+#### Managing GitHub Credentials
+
+Set up or check your GitHub credentials:
 ```bash
-python scripts/manage_api_keys.py delete
+python src/secrets_manager.py test --github
+```
+
+#### Managing Cloud Storage Settings
+
+Configure Google Cloud Storage settings:
+```bash
+python src/secrets_manager.py test --cloud
+```
+
+#### Managing Service Account Credentials
+
+Check your service account configurations:
+```bash
+python src/secrets_manager.py test --service-accounts
 ```
 
 ### Transcription
@@ -179,6 +227,8 @@ python scripts/download_year_category.py 2025 "House Chambers" --limit 5
   - `downloader.py` - Video downloading engine
   - `transcript_db.py` - Database for tracking transcript processing
   - `drive_storage.py` - Google Drive integration
+  - `cloud_storage.py` - Google Cloud Storage integration
+  - `secrets_manager.py` - Centralized secrets management
   - `api.py` - REST API for the frontend
   - `file_server.py` - Serves media files
   - `server.py` - Combined server entry point
@@ -256,7 +306,7 @@ npm run dev
 
 ## Workflow
 
-The project offers multiple workflow options depending on your needs, including interactive processes, manual steps, and automatic cloud storage.
+The project offers multiple workflow options depending on your needs, including interactive processes, manual steps, and automatic cloud storage with support for both Google Drive and Google Cloud Storage.
 
 ### Interactive All-in-One Process
 
@@ -335,7 +385,11 @@ python scripts/process_transcripts.py --scan-only
 python scripts/process_transcripts.py --upload-limit 5
 ```
 
-### Google Drive Storage
+### Cloud Storage
+
+The project supports two cloud storage options: Google Drive and Google Cloud Storage.
+
+#### Google Drive Storage
 
 For storing and managing media files on Google Drive:
 
@@ -371,6 +425,41 @@ python scripts/daily_upload.py --recent-only --days 7  # Upload files from the l
 python scripts/daily_upload.py --force  # Upload all files, even if they already exist
 python scripts/daily_upload.py --batch-size 10 --rate-limit 2  # Customize upload performance
 ```
+
+#### Google Cloud Storage
+
+For storing and managing media files on Google Cloud Storage:
+
+```bash
+# Set up your GCS credentials and settings
+python scripts/manage_cloud_storage.py setup
+
+# Test connection to Google Cloud Storage
+python scripts/manage_cloud_storage.py test
+
+# Complete verification process
+python scripts/manage_cloud_storage.py verify
+
+# View your current settings
+python scripts/manage_cloud_storage.py get
+
+# Set up environment variables for the current session
+python scripts/manage_cloud_storage.py env
+
+# Generate export statements for your shell
+python scripts/manage_cloud_storage.py env --export
+
+# Migrate files to Google Cloud Storage
+python scripts/migrate_to_cloud_storage.py
+
+# Migrate specific types of files
+python scripts/migrate_to_cloud_storage.py --media-types video,audio
+
+# Control migration behavior
+python scripts/migrate_to_cloud_storage.py --batch-size 10 --rate-limit 1 --limit 20
+```
+
+Once configured, the file server will automatically serve files from Google Cloud Storage when enabled in your settings.
 
 ### Manual Step-by-Step Workflow
 

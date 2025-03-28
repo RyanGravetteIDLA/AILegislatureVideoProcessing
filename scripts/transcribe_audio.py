@@ -19,8 +19,8 @@ from pydub import AudioSegment
 # Add parent directory to path so we can import our module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Import the API key manager
-from scripts.manage_api_keys import get_api_key
+# Import the centralized secrets manager
+from src.secrets_manager import get_gemini_api_key
 
 
 class AudioTranscriber:
@@ -36,9 +36,9 @@ class AudioTranscriber:
         """
         # If API key is not provided, try to get it from the keychain
         if not api_key:
-            api_key = get_api_key()
+            api_key = get_gemini_api_key()
             if not api_key:
-                raise ValueError("API key is required. Either provide it directly or store it using manage_api_keys.py")
+                raise ValueError("API key is required. Either provide it directly or store it using secrets_manager.py")
                 
         # Configure the Gemini API
         genai.configure(api_key=api_key)
@@ -273,14 +273,14 @@ def main():
         parser.print_help()
         return
     
-    # Get API key from command line or keychain
+    # Get API key from command line or secrets manager
     api_key = args.api_key
     if not api_key:
-        api_key = get_api_key()
+        api_key = get_gemini_api_key()
         if not api_key:
             print("Error: No API key provided and none found in keychain.")
             print("Either provide an API key with --api-key or store one using:")
-            print("python scripts/manage_api_keys.py store")
+            print("python src/secrets_manager.py test --api-keys")
             return
     
     if args.command == 'directory':

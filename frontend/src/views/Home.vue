@@ -1,5 +1,50 @@
 <script setup>
-// Simplified Home page that doesn't rely on the store
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+
+// Define API URLs from environment variables
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+
+// Statistics state
+const stats = ref({
+  videos: 0,
+  audio: 0,
+  transcripts: 0,
+  total: 0
+})
+
+const loading = ref(false)
+const error = ref(null)
+
+// Fetch statistics from API
+const fetchStats = async () => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    // Fetch stats from API
+    const response = await axios.get(`${API_URL}/stats`)
+    stats.value = response.data
+    console.log('Stats loaded:', stats.value)
+  } catch (err) {
+    console.error('Error loading stats:', err)
+    error.value = 'Failed to load statistics'
+    // Use fallback values if API fails
+    stats.value = {
+      videos: 125,
+      audio: 142, 
+      transcripts: 98,
+      total: 365
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+// Fetch data on component mount
+onMounted(() => {
+  fetchStats()
+})
 </script>
 
 <template>
@@ -16,22 +61,25 @@
     </div>
     
     <!-- Stats cards -->
-    <div class="stats-grid">
+    <div v-if="loading" class="text-center py-4">
+      <p>Loading statistics...</p>
+    </div>
+    <div v-else class="stats-grid">
       <div class="stats-card">
         <h3>Total Videos</h3>
-        <p class="stat">125</p>
+        <p class="stat">{{ stats.videos }}</p>
       </div>
       <div class="stats-card">
         <h3>Total Audio Files</h3>
-        <p class="stat">142</p>
+        <p class="stat">{{ stats.audio }}</p>
       </div>
       <div class="stats-card">
         <h3>Total Transcripts</h3>
-        <p class="stat">98</p>
+        <p class="stat">{{ stats.transcripts }}</p>
       </div>
       <div class="stats-card">
-        <h3>Processed Today</h3>
-        <p class="stat">12</p>
+        <h3>Total Media</h3>
+        <p class="stat">{{ stats.total }}</p>
       </div>
     </div>
     

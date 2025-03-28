@@ -135,8 +135,10 @@ def generate_report():
     print(f"\nTranscript Database Report")
     print(f"=========================")
     print(f"Total transcripts: {total}")
-    print(f"Processed: {processed} ({processed/total*100:.1f}% if total > 0 else 0}%)")
-    print(f"Uploaded: {uploaded} ({uploaded/total*100:.1f}% if total > 0 else 0}%)")
+    percentage_processed = processed/total*100 if total > 0 else 0
+    percentage_uploaded = uploaded/total*100 if total > 0 else 0
+    print(f"Processed: {processed} ({percentage_processed:.1f}%)")
+    print(f"Uploaded: {uploaded} ({percentage_uploaded:.1f}%)")
     print(f"Remaining to upload: {processed - uploaded}")
     print(f"\nRecent transcripts:")
     
