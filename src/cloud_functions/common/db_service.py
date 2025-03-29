@@ -1,49 +1,79 @@
 """
 Database service for the Idaho Legislature Media Portal API.
-Provides access to Firestore database.
+Provides access to unified database interface.
 """
 
 import os
-from google.cloud import firestore
+import sys
+import logging
+from typing import List, Optional, Dict, Any
+
+# Add src directory to path for imports
+current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+# Import the unified database interface
+try:
+    from db_interface import get_db_interface, MediaItem
+except ImportError:
+    # Fallback to relative import
+    from ...db_interface import get_db_interface, MediaItem
+
 from .utils import setup_logging
 
 # Set up logging
 logger = setup_logging("db_service")
 
-# Singleton database client
-_db_client = None
+# Singleton database interface
+_db_interface = None
 
 
+def get_db_interface_instance():
+    """
+    Get or initialize the database interface
+    
+    Returns:
+        The database interface instance
+    """
+    global _db_interface
+    
+    if _db_interface is None:
+        try:
+            _db_interface = get_db_interface()
+            logger.info("Database interface initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize database interface: {e}")
+            raise
+    
+    return _db_interface
+
+
+# For backward compatibility with code that expects Firestore directly
 def get_db_client():
     """
-    Get or initialize the Firestore client
-
+    Legacy function: Get the Firestore client directly
+    
     Returns:
         The Firestore client instance
     """
-    global _db_client
-
-    if _db_client is None:
-        project_id = os.environ.get(
-            "GOOGLE_CLOUD_PROJECT", "legislativevideoreviewswithai"
-        )
-        logger.info(f"Initializing Firestore client for project: {project_id}")
-
-        try:
-            _db_client = firestore.Client(project=project_id)
-            logger.info("Firestore client initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize Firestore client: {e}")
-            raise
-
-    return _db_client
+    db = get_db_interface_instance()
+    
+    # Access the raw Firestore client through the implementation
+    if hasattr(db.db_implementation, 'client'):
+        return db.db_implementation.client
+    
+    # Fallback to creating a new client
+    project_id = os.environ.get('GOOGLE_CLOUD_PROJECT', 'legislativevideoreviewswithai')
+    from google.cloud import firestore
+    return firestore.Client(project=project_id)
 
 
-# Mock data for testing when Firestore is not available
+# Mock data for testing when database is not available
 def get_mock_videos():
     """
     Return mock videos for testing
-
+    
     Returns:
         List of mock video objects
     """
@@ -72,7 +102,7 @@ def get_mock_videos():
 def get_mock_audio():
     """
     Return mock audio for testing
-
+    
     Returns:
         List of mock audio objects
     """
@@ -133,7 +163,7 @@ def get_mock_audio():
 def get_mock_transcripts():
     """
     Return mock transcripts for testing
-
+    
     Returns:
         List of mock transcript objects
     """
@@ -199,3 +229,188 @@ def get_mock_transcripts():
             "url": "https://storage.googleapis.com/legislativevideoreviewswithai.appspot.com/transcripts/mock5.txt",
         },
     ]
+
+
+# Enhanced functions that use the unified database interface
+def get_videos_from_db(year=None, category=None, search=None):
+    """
+    Get videos from the database with optional filters
+    
+    Args:
+        year: Optional filter by year
+        category: Optional filter by category
+        search: Optional search term
+        
+    Returns:
+        List of video objects
+    """
+    try:
+        db = get_db_interface_instance()
+        all_items = db.get_all_items(media_type="video")
+        
+        # Apply filters
+        filtered_items = []
+        for item in all_items:
+            # Skip non-video items (shouldn't happen with media_type filter)
+            if item.media_type != "video":
+                continue
+                
+            # Apply year filter
+            if year and item.year != year:
+                continue
+                
+            # Apply category filter
+            if category and item.category != category:
+                continue
+                
+            # Apply search filter
+            if search:
+                search_term = search.lower()
+                title = item.file_name.lower()
+                session = item.session_name.lower()
+                
+                if search_term not in title and search_term not in session:
+                    continue
+                    
+            # Item passed all filters, add to result
+            filtered_items.append(item)
+            
+        return filtered_items
+    except Exception as e:
+        logger.error(f"Error getting videos from database: {e}")
+        # Return mock data if database access fails
+        return get_mock_videos()
+
+
+def get_audio_from_db(year=None, category=None, search=None):
+    """
+    Get audio from the database with optional filters
+    
+    Args:
+        year: Optional filter by year
+        category: Optional filter by category
+        search: Optional search term
+        
+    Returns:
+        List of audio objects
+    """
+    try:
+        db = get_db_interface_instance()
+        all_items = db.get_all_items(media_type="audio")
+        
+        # Apply filters
+        filtered_items = []
+        for item in all_items:
+            # Skip non-audio items (shouldn't happen with media_type filter)
+            if item.media_type != "audio":
+                continue
+                
+            # Apply year filter
+            if year and item.year != year:
+                continue
+                
+            # Apply category filter
+            if category and item.category != category:
+                continue
+                
+            # Apply search filter
+            if search:
+                search_term = search.lower()
+                title = item.file_name.lower()
+                session = item.session_name.lower()
+                
+                if search_term not in title and search_term not in session:
+                    continue
+                    
+            # Item passed all filters, add to result
+            filtered_items.append(item)
+            
+        return filtered_items
+    except Exception as e:
+        logger.error(f"Error getting audio from database: {e}")
+        # Return mock data if database access fails
+        return get_mock_audio()
+
+
+def get_transcripts_from_db(year=None, category=None, search=None):
+    """
+    Get transcripts from the database with optional filters
+    
+    Args:
+        year: Optional filter by year
+        category: Optional filter by category
+        search: Optional search term
+        
+    Returns:
+        List of transcript objects
+    """
+    try:
+        db = get_db_interface_instance()
+        all_items = db.get_all_items(media_type="transcript")
+        
+        # Apply filters
+        filtered_items = []
+        for item in all_items:
+            # Skip non-transcript items (shouldn't happen with media_type filter)
+            if item.media_type != "transcript":
+                continue
+                
+            # Apply year filter
+            if year and item.year != year:
+                continue
+                
+            # Apply category filter
+            if category and item.category != category:
+                continue
+                
+            # Apply search filter
+            if search:
+                search_term = search.lower()
+                title = item.file_name.lower()
+                session = item.session_name.lower()
+                
+                if search_term not in title and search_term not in session:
+                    continue
+                    
+            # Item passed all filters, add to result
+            filtered_items.append(item)
+            
+        return filtered_items
+    except Exception as e:
+        logger.error(f"Error getting transcripts from database: {e}")
+        # Return mock data if database access fails
+        return get_mock_transcripts()
+
+
+def get_filter_options():
+    """
+    Get available filter options for the API
+    
+    Returns:
+        Dictionary with years and categories
+    """
+    try:
+        db = get_db_interface_instance()
+        all_items = db.get_all_items()
+        
+        # Extract unique years and categories
+        years = set()
+        categories = set()
+        
+        for item in all_items:
+            if item.year:
+                years.add(item.year)
+            if item.category:
+                categories.add(item.category)
+                
+        return {
+            "years": sorted(list(years)),
+            "categories": sorted(list(categories))
+        }
+    except Exception as e:
+        logger.error(f"Error getting filter options: {e}")
+        # Return some mock options if database access fails
+        return {
+            "years": ["2023", "2024", "2025"],
+            "categories": ["House Chambers", "Senate Chambers", "Joint Session"]
+        }
