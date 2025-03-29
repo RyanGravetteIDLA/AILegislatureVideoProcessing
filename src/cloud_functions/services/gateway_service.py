@@ -14,6 +14,7 @@ try:
     )
     from .health_service import handle_health_request
     from .video_service import handle_videos_request, handle_video_request
+    from .stats_service import handle_stats_request, handle_filters_request
 except ImportError:
     from common.utils import (
         setup_logging, 
@@ -24,6 +25,7 @@ except ImportError:
     )
     from services.health_service import handle_health_request
     from services.video_service import handle_videos_request, handle_video_request
+    from services.stats_service import handle_stats_request, handle_filters_request
 
 # Set up logging
 logger = setup_logging('gateway_service')
@@ -70,6 +72,14 @@ def route_request(request):
                 return handle_video_request(video_id)
             else:
                 return create_error_response("Invalid video ID", 400)
+                
+        # Stats endpoint
+        elif path == '/stats' or path == '/api/stats':
+            return handle_stats_request()
+            
+        # Filters endpoint
+        elif path == '/filters' or path == '/api/filters':
+            return handle_filters_request()
             
         # Root or API info endpoint
         elif path == '/' or path == '/api' or not path:
