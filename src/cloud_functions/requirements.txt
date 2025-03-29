@@ -1,0 +1,4 @@
+flask==2.0.1
+google-cloud-firestore==2.7.2
+werkzeug==2.0.1
+python-dotenv==1.0.0
