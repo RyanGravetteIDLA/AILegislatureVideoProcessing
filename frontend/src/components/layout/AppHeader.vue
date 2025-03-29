@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import mainLogo from '../../assets/main.png'
 
 const router = useRouter()
 const mobileMenuOpen = ref(false)
@@ -18,11 +19,10 @@ const closeMobileMenu = () => {
 // Navigation items
 const navItems = [
   { name: 'Home', path: '/', icon: 'home' },
-  { name: 'Videos', path: '/videos', icon: 'video' },
-  { name: 'Audio', path: '/audio', icon: 'audio' },
-  { name: 'Transcripts', path: '/transcripts', icon: 'document' },
+  { name: 'Media', path: '/videos', icon: 'video' },
   { name: 'Sitemap', path: '/sitemap', icon: 'map' },
-  { name: 'Admin', path: '/admin', icon: 'settings' }
+  { name: 'Admin', path: '/admin', icon: 'settings' },
+  { name: 'Diagnostic', path: '/diagnostic', icon: 'tools' }
 ]
 
 // Active route
@@ -39,7 +39,9 @@ const isActive = (path) => {
         <div class="flex">
           <div class="flex-shrink-0 flex items-center">
             <router-link to="/" class="flex items-center">
-              <span class="text-xl font-bold text-white dark:text-gray-100">Legislative Media</span>
+              <div class="logo-container">
+                <img :src="mainLogo" alt="Legislative Video Reviews with AI" class="app-logo" />
+              </div>
             </router-link>
           </div>
           
@@ -73,7 +75,7 @@ const isActive = (path) => {
           </button>
           
           <!-- Mobile menu button -->
-          <div class="sm:hidden ml-4">
+          <div class="sm:hidden ml-4 flex items-center">
             <button 
               @click="toggleMobileMenu"
               class="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-gray-200 dark:text-gray-200 dark:hover:text-white"
@@ -128,3 +130,33 @@ const isActive = (path) => {
     </div>
   </header>
 </template>
+
+<style scoped>
+.logo-container {
+  height: 40px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.app-logo {
+  height: 40px;
+  width: auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+  transition: transform 0.3s ease;
+}
+
+.app-logo:hover {
+  transform: scale(1.05);
+}
+
+@media (max-width: 640px) {
+  .logo-container {
+    height: 32px;
+  }
+  
+  .app-logo {
+    height: 32px;
+  }
+}
+</style>

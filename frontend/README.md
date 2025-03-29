@@ -1,5 +1,56 @@
-# Vue 3 + Vite
+# Idaho Legislative Media Portal Frontend
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+This is the Vue.js frontend for the Idaho Legislative Media Portal, which provides access to legislative session videos, audio recordings, and transcripts.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## Configuration for Firebase Hosting
+
+The frontend has been configured for deployment to Firebase Hosting with the following:
+
+1. Environment Variables
+   - Development: Using `http://localhost:5000/api` for local development
+   - Production: Using Cloud Run URL `https://media-portal-backend-335217295357.us-west1.run.app/api`
+
+2. Firebase Configuration Files
+   - `firebase.json` - Configures hosting settings with SPA rewrites
+   - `.firebaserc` - Specifies the GCP project ID
+
+3. Deployment Documentation
+   - See `FIREBASE_DEPLOYMENT.md` for detailed deployment instructions
+
+## Project Structure
+
+- `src/` - Source code
+  - `components/` - Vue components
+  - `views/` - Page views
+  - `stores/` - Pinia state management
+  - `router/` - Vue Router configuration
+  - `assets/` - Static assets
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## API Integration
+
+The frontend connects to the FastAPI backend deployed on Cloud Run. It uses environment variables to determine the API endpoint:
+
+- `VITE_API_URL` - Base URL for API requests
+- `VITE_FILE_SERVER_URL` - URL for serving media files
+
+The Pinia store (`src/stores/mediaStore.js`) handles all API requests and state management for media items.
+
+## Deployment
+
+Refer to `FIREBASE_DEPLOYMENT.md` for complete deployment instructions.

@@ -7,6 +7,17 @@
 
 A comprehensive platform for downloading, processing, transcribing, serving, and analyzing Idaho legislative session videos. This project leverages Google Cloud technologies to create a modern media portal for legislative content.
 
+## Quick Start
+```bash
+# For an interactive workflow that handles everything:
+python scripts/process_committee.py
+
+# This will guide you through selecting a year, committee, and optionally a specific day
+# It will download videos, convert to audio, and handle transcription in one process
+```
+
+The platform provides:
+
 1. **Download legislative session videos** from the Idaho Legislature website
 2. **Convert videos to audio** for easier processing 
 3. **Transcribe audio to text** using Google's Gemini AI models
@@ -322,6 +333,37 @@ npm run dev
 ## Workflow
 
 The project offers multiple workflow options depending on your needs, including interactive processes, manual steps, and automatic cloud storage with Google Cloud Storage.
+
+### Using the Downloader Module
+
+The core functionality for downloading media from the Idaho Legislature website is provided by the `src/downloader.py` module, which is used by all the download scripts. This module provides the `IdahoLegislatureDownloader` class with these key functions:
+
+- `download_specific_meeting(year, category, target_date)` - Downloads media files for a specific date
+- `download_year_category(year, category, limit=None)` - Downloads all media for a year/category, with optional limit
+- `get_all_meetings(year, category)` - Gets all available meetings for a year/category
+- `convert_video_to_audio(video_path)` - Converts videos to audio format using ffmpeg
+
+The following scripts are available to interact with the downloader:
+
+1. **Download Specific Date**: 
+   ```bash
+   python scripts/download_specific_date.py 2025 "House Chambers" "January 8" --convert-audio
+   ```
+
+2. **Download All Videos for Year/Category**: 
+   ```bash
+   python scripts/download_year_category.py 2025 "House Chambers" --convert-audio
+   ```
+
+3. **Download Missing Videos**: 
+   ```bash
+   python scripts/download_missing_videos.py --year 2025 --category "House Chambers" --convert-audio
+   ```
+
+4. **Daily Cloud Ingest** (combines downloading & uploading to cloud):
+   ```bash
+   python scripts/daily_cloud_ingest.py
+   ```
 
 ### Interactive All-in-One Process
 

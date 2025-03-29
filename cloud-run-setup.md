@@ -66,6 +66,7 @@ Note: The `--service-account` flag specifies which service account Cloud Run sho
 # Update environment variables for production
 cd frontend
 echo "VITE_API_URL=https://media-portal-backend-[PROJECT_ID].us-west1.run.app/api" > .env.production
+echo "VITE_FILE_SERVER_URL=https://storage.googleapis.com/legislativevideoreviewswithai.firebasestorage.app" >> .env.production
 
 # Build frontend
 npm run build
@@ -81,33 +82,28 @@ The Cloud Run service needs several environment variables configured in order to
 ```bash
 # Example values - replace with your actual values
 gcloud run services update media-portal-backend \
-  --set-env-vars="GOOGLE_CLOUD_PROJECT=legislativevideoreviewswithai,GCS_BUCKET_NAME=idaho-legislature-media,USE_CLOUD_STORAGE=true,PREFER_CLOUD_STORAGE=true" \
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=legislativevideoreviewswithai,GCS_BUCKET_NAME=legislativevideoreviewswithai.firebasestorage.app,USE_CLOUD_STORAGE=true,PREFER_CLOUD_STORAGE=true" \
   --region=us-west1
 ```
 
-### Service Account Update
+### Updating the Service Account
 
-If you're experiencing permission issues, you may need to update to the Firebase Admin SDK service account:
+If you need to update the service account:
 
 ```bash
 # Update environment variables with the correct service account email
 gcloud run services update media-portal-backend \
-  --set-env-vars="FIREBASE_SERVICE_ACCOUNT=firebase-adminsdk-fbsvc@legislativevideoreviewswithai.iam.gserviceaccount.com" \
+  --service-account=firebase-adminsdk-fbsvc@legislativevideoreviewswithai.iam.gserviceaccount.com \
   --region=us-west1
 ```
 
 ## Step 6: Set Up Cloud Storage for Media Files
 
-1. Create a Cloud Storage bucket for media files:
+By default, the application uses the Firebase Storage bucket associated with your project. You can verify the bucket name in the Firebase Console under Storage.
 
 ```bash
-gsutil mb -l us-west1 gs://idaho-legislature-media
-```
-
-2. Configure the bucket for public access (if applicable):
-
-```bash
-gsutil iam ch allUsers:objectViewer gs://idaho-legislature-media
+# If you need to create a custom bucket, use:
+gsutil mb -l us-west1 gs://custom-bucket-name
 ```
 
 ## Step 7: Set Up Scheduled Jobs
@@ -130,18 +126,16 @@ gcloud scheduler jobs create http daily-media-ingestion \
    - Visit `https://media-portal-backend-[PROJECT_ID].us-west1.run.app/api/health`
 
 2. Test the Frontend:
-   - Visit your Firebase Hosting URL
+   - Visit your Firebase Hosting URL (`https://legislativevideoreviewswithai.web.app`)
 
 ## Local Testing
 
-To test locally, make sure the GOOGLE_APPLICATION_CREDENTIALS environment variable is set:
+To test locally, make sure the environment variables are set:
 
 ```bash
-export GOOGLE_APPLICATION_CREDENTIALS="/path/to/credentials/legislativevideoreviewswithai-80ed70b021b5.json"
-```
+# Use the script to set all required environment variables
+source set_credentials.sh
 
-Then run the local development server:
-
-```bash
+# Start the server
 python src/server.py
 ```

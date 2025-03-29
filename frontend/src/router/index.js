@@ -14,19 +14,17 @@ const routes = [
     path: '/videos',
     name: 'videos',
     component: () => import('../views/Videos.vue'),
-    meta: { title: 'Video Library' }
+    meta: { title: 'Media Library' }
   },
   {
     path: '/audio',
-    name: 'audio',
-    component: () => import('../views/Audio.vue'),
-    meta: { title: 'Audio Library' }
+    redirect: '/videos',
+    meta: { title: 'Media Library' }
   },
   {
     path: '/transcripts',
-    name: 'transcripts',
-    component: () => import('../views/Transcripts.vue'),
-    meta: { title: 'Transcript Library' }
+    redirect: '/videos',
+    meta: { title: 'Media Library' }
   },
   {
     path: '/sitemap',
@@ -39,6 +37,19 @@ const routes = [
     name: 'admin',
     component: () => import('../views/Admin.vue'),
     meta: { title: 'Admin Dashboard', requiresAuth: true }
+  },
+  {
+    path: '/diagnostic',
+    name: 'diagnostic',
+    component: () => import('../views/Diagnostic.vue'),
+    meta: { title: 'API Diagnostic' }
+  },
+  // Add a catch-all route for 404
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: Home,
+    meta: { title: 'Page Not Found' }
   }
 ]
 
@@ -59,6 +70,9 @@ router.beforeEach((to, from, next) => {
   // Set document title
   document.title = `${to.meta.title || 'Home'} | Idaho Legislature Media`
   
+  // Add analytics tracking here if needed
+  console.log(`Route changed: ${from.path} → ${to.path}`)
+  
   // Handle auth-required routes (to be implemented)
   if (to.meta.requiresAuth) {
     // For now, just allow access
@@ -67,6 +81,14 @@ router.beforeEach((to, from, next) => {
   } else {
     next()
   }
+})
+
+// Handle errors during navigation
+router.onError((error) => {
+  console.error('Navigation error:', error)
+  
+  // Log the error but don't attempt to reload
+  // This prevents potential infinite reload loops
 })
 
 export default router

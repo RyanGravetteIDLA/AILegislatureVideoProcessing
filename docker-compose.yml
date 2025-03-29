@@ -2,14 +2,21 @@ version: '3.8'
 
 services:
   api:
-    build: .
-    command: python src/server.py --api-only
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn src.api_firestore:app --host 0.0.0.0 --port 5000 --reload
     ports:
       - "5000:5000"
     volumes:
+      - ./src:/app/src
       - ./data:/app/data
+      - ./credentials:/app/credentials
     env_file:
       - .env
+    environment:
+      - PORT=5000
+      - PYTHONPATH=/app
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
@@ -19,14 +26,21 @@ services:
       start_period: 20s
 
   file-server:
-    build: .
-    command: python src/server.py --file-only
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python src/file_server.py
     ports:
       - "5001:5001"
     volumes:
+      - ./src:/app/src
       - ./data:/app/data
+      - ./credentials:/app/credentials
     env_file:
       - .env
+    environment:
+      - PORT=5001
+      - PYTHONPATH=/app
     restart: unless-stopped
     depends_on:
       - api
@@ -41,12 +55,19 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.js:/app/vite.config.js
+      - ./frontend/.env.development:/app/.env.development
     ports:
-      - "80:80"
+      - "5173:5173"
+    command: npm run dev -- --host 0.0.0.0
     depends_on:
       - api
       - file-server
     restart: unless-stopped
     environment:
-      - VITE_API_URL=http://api:5000/api
-      - VITE_FILE_SERVER_URL=http://file-server:5001/files
+      - VITE_API_URL=http://localhost:5000/api
+      - VITE_FILE_SERVER_URL=http://localhost:5001/files

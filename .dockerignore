@@ -1,0 +1,64 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Media files
+data/downloads/
+data/audio_clips/
+data/test_conversion/
+*.mp4
+*.mp3
+*.wav
+
+# Specific directories we don't need in Docker
+frontend/
+simple-vue/
+
+# Git
+.git/
+.gitignore
+
+# Exclude these from the build to avoid leaking credentials
+.env
+.github-config
+.pytest_cache/
+
+# DO NOT exclude credentials directory since we need it
+# !credentials/

@@ -4,10 +4,25 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + Vue</title>
+    <title>Idaho Legislature Media</title>
+    <meta name="description" content="Access videos, audio, and transcripts from the Idaho Legislature" />
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!-- Loading state while Vue initializes -->
+      <div style="display: flex; height: 100vh; align-items: center; justify-content: center; flex-direction: column;">
+        <h1 style="font-family: system-ui, sans-serif; font-size: 1.5rem; margin-bottom: 1rem;">
+          Loading Idaho Legislature Media...
+        </h1>
+        <div style="width: 50px; height: 50px; border: 3px solid #f3f3f3; border-top: 3px solid #486581; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.js"></script>
+    <style>
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
   </body>
 </html>

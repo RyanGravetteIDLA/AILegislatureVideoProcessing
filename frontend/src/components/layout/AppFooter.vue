@@ -23,16 +23,16 @@ const currentYear = new Date().getFullYear()
             Home
           </router-link>
           <router-link to="/videos" class="text-gray-200 hover:text-white dark:text-gray-300 dark:hover:text-white focus:outline-2 focus:outline-offset-2 focus:outline-primary-300">
-            Videos
-          </router-link>
-          <router-link to="/audio" class="text-gray-200 hover:text-white dark:text-gray-300 dark:hover:text-white focus:outline-2 focus:outline-offset-2 focus:outline-primary-300">
-            Audio
-          </router-link>
-          <router-link to="/transcripts" class="text-gray-200 hover:text-white dark:text-gray-300 dark:hover:text-white focus:outline-2 focus:outline-offset-2 focus:outline-primary-300">
-            Transcripts
+            Media
           </router-link>
           <router-link to="/sitemap" class="text-gray-200 hover:text-white dark:text-gray-300 dark:hover:text-white focus:outline-2 focus:outline-offset-2 focus:outline-primary-300">
             Sitemap
+          </router-link>
+          <router-link to="/admin" class="text-gray-200 hover:text-white dark:text-gray-300 dark:hover:text-white focus:outline-2 focus:outline-offset-2 focus:outline-primary-300">
+            Admin
+          </router-link>
+          <router-link to="/diagnostic" class="text-gray-200 hover:text-white dark:text-gray-300 dark:hover:text-white focus:outline-2 focus:outline-offset-2 focus:outline-primary-300">
+            Diagnostic
           </router-link>
         </nav>
       </div>

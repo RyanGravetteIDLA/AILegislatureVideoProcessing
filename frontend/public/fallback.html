@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Idaho Legislature Media</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #486581;
+      margin-top: 40px;
+    }
+    .container {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 500px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #486581;
+      color: white;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: 500;
+      margin-top: 20px;
+    }
+    .links {
+      margin-top: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    .link-btn {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      padding: 10px 20px;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #486581;
+    }
+  </style>
+</head>
+<body>
+  <h1>Idaho Legislature Media</h1>
+  
+  <div class="container">
+    <div class="card">
+      <h2>Fallback Page</h2>
+      <p>The main application is temporarily unavailable. Please try again in a moment.</p>
+      
+      <a href="/" class="btn">Retry Main Page</a>
+    </div>
+    
+    <div class="links">
+      <a href="/diagnostic.html" class="link-btn">Run Diagnostics</a>
+      <a href="https://storage.googleapis.com/legislativevideoreviewswithai.firebasestorage.app/" class="link-btn">Access Storage</a>
+      <a href="https://media-portal-backend-335217295357.us-west1.run.app/" class="link-btn">Access API</a>
+    </div>
+  </div>
+  
+  <script>
+    // Automatically redirect after 10 seconds
+    setTimeout(function() {
+      window.location.href = '/';
+    }, 10000);
+  </script>
+</body>
+</html>

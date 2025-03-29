@@ -1,0 +1,472 @@
+{% extends "base.html" %}
+
+{% block title %}Idaho Legislature Media Download Queue{% endblock %}
+
+{% block content %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Queue Statistics</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <div class="card text-white bg-primary">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total</h5>
+                                    <h2 class="card-text">{{ stats.total }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card text-white bg-warning">
+                                <div class="card-body">
+                                    <h5 class="card-title">Pending</h5>
+                                    <h2 class="card-text">{{ stats.pending }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card text-white bg-info">
+                                <div class="card-body">
+                                    <h5 class="card-title">Processing</h5>
+                                    <h2 class="card-text">{{ stats.processing }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card text-white bg-success">
+                                <div class="card-body">
+                                    <h5 class="card-title">Completed</h5>
+                                    <h2 class="card-text">{{ stats.completed }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card text-white bg-danger">
+                                <div class="card-body">
+                                    <h5 class="card-title">Failed</h5>
+                                    <h2 class="card-text">{{ stats.failed }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>Add Video</h3>
+                </div>
+                <div class="card-body">
+                    <form id="enqueueForm">
+                        <div class="mb-3">
+                            <label for="year" class="form-label">Year</label>
+                            <input type="text" class="form-control" id="year" name="year" value="2025" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="month" class="form-label">Month (1-12)</label>
+                            <input type="number" class="form-control" id="month" name="month" min="1" max="12" value="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="day" class="form-label">Day (1-31)</label>
+                            <input type="number" class="form-control" id="day" name="day" min="1" max="31" value="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="committee" class="form-label">Committee</label>
+                            <input type="text" class="form-control" id="committee" name="committee" value="Education">
+                        </div>
+                        <div class="mb-3">
+                            <label for="code" class="form-label">Committee Code</label>
+                            <input type="text" class="form-control" id="code" name="code" value="hedu">
+                        </div>
+                        <div class="mb-3">
+                            <label for="time" class="form-label">Time</label>
+                            <input type="text" class="form-control" id="time" name="time" value="0900AM">
+                        </div>
+                        <div class="mb-3">
+                            <label for="priority" class="form-label">Priority</label>
+                            <input type="number" class="form-control" id="priority" name="priority" value="0">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add to Queue</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>Add Video Range</h3>
+                </div>
+                <div class="card-body">
+                    <form id="enqueueRangeForm">
+                        <div class="mb-3">
+                            <label for="range_year" class="form-label">Year</label>
+                            <input type="text" class="form-control" id="range_year" name="year" value="2025" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="range_committee" class="form-label">Committee</label>
+                            <input type="text" class="form-control" id="range_committee" name="committee" value="Education">
+                        </div>
+                        <div class="mb-3">
+                            <label for="range_code" class="form-label">Committee Code</label>
+                            <input type="text" class="form-control" id="range_code" name="code" value="hedu">
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <div class="mb-3">
+                                    <label for="start_month" class="form-label">Start Month</label>
+                                    <input type="number" class="form-control" id="start_month" name="start_month" min="1" max="12" value="1">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="mb-3">
+                                    <label for="end_month" class="form-label">End Month</label>
+                                    <input type="number" class="form-control" id="end_month" name="end_month" min="1" max="12" value="12">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <div class="mb-3">
+                                    <label for="start_day" class="form-label">Start Day</label>
+                                    <input type="number" class="form-control" id="start_day" name="start_day" min="1" max="31" value="1">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="mb-3">
+                                    <label for="end_day" class="form-label">End Day</label>
+                                    <input type="number" class="form-control" id="end_day" name="end_day" min="1" max="31" value="31">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="range_time" class="form-label">Time</label>
+                            <input type="text" class="form-control" id="range_time" name="time" value="0900AM">
+                        </div>
+                        <div class="mb-3">
+                            <label for="range_priority" class="form-label">Priority</label>
+                            <input type="number" class="form-control" id="range_priority" name="priority" value="0">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Range to Queue</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>Process Queue</h3>
+                </div>
+                <div class="card-body">
+                    <form id="processForm">
+                        <div class="mb-3">
+                            <label for="output_dir" class="form-label">Output Directory</label>
+                            <input type="text" class="form-control" id="output_dir" name="output_dir" value="data/downloads">
+                        </div>
+                        <div class="mb-3">
+                            <label for="limit" class="form-label">Limit</label>
+                            <input type="number" class="form-control" id="limit" name="limit" min="1" value="10">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="convert_to_audio" name="convert_to_audio" checked>
+                            <label class="form-check-label" for="convert_to_audio">Convert to Audio</label>
+                        </div>
+                        <button type="submit" class="btn btn-success">Process Queue</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3>Queue Items</h3>
+                    <div class="d-flex">
+                        <div class="dropdown me-2">
+                            <button class="btn btn-secondary dropdown-toggle" type="button" id="statusFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                {% if status_filter %}{{ status_filter }}{% else %}All{% endif %}
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="statusFilterDropdown">
+                                <li><a class="dropdown-item" href="{{ url_for('index') }}">All</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('index', status='pending') }}">Pending</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('index', status='processing') }}">Processing</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('index', status='completed') }}">Completed</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('index', status='failed') }}">Failed</a></li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-primary" onclick="location.reload()">Refresh</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Committee</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if items %}
+                                    {% for item in items %}
+                                        <tr class="status-{{ item.status }}">
+                                            <td>{{ item.month }}/{{ item.day }}/{{ item.year }}</td>
+                                            <td>{{ item.committee }}</td>
+                                            <td>{{ item.status }}</td>
+                                            <td>{{ item.created_at }}</td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-sm btn-info" onclick="viewItem('{{ item.id }}')">View</button>
+                                                    {% if item.status == 'failed' %}
+                                                        <button type="button" class="btn btn-sm btn-warning" onclick="retryItem('{{ item.id }}')">Retry</button>
+                                                    {% endif %}
+                                                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteItem('{{ item.id }}')">Delete</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No items found</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if total_pages > 1 %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('index', page=page-1, status=status_filter) }}">Previous</a>
+                            </li>
+                            
+                            {% for p in range(1, total_pages + 1) %}
+                                <li class="page-item {% if p == page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('index', page=p, status=status_filter) }}">{{ p }}</a>
+                                </li>
+                            {% endfor %}
+                            
+                            <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('index', page=page+1, status=status_filter) }}">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- View Item Modal -->
+    <div class="modal fade" id="viewItemModal" tabindex="-1" aria-labelledby="viewItemModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewItemModalLabel">Item Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="itemDetails" class="mb-3">
+                        <pre id="itemJson"></pre>
+                    </div>
+                    <div id="itemActions">
+                        <button type="button" class="btn btn-sm btn-warning" id="retryItemBtn" style="display: none;">Retry</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Process Results Modal -->
+    <div class="modal fade" id="processResultsModal" tabindex="-1" aria-labelledby="processResultsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="processResultsModalLabel">Processing Results</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="processResults"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Add Video Form
+    document.getElementById('enqueueForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch('/enqueue', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Video added to queue successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    });
+    
+    // Add Video Range Form
+    document.getElementById('enqueueRangeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!confirm('This may add many videos to the queue. Are you sure?')) {
+            return;
+        }
+        
+        const formData = new FormData(this);
+        
+        fetch('/enqueue_range', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`${data.count} videos added to queue successfully!`);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    });
+    
+    // Process Queue Form
+    document.getElementById('processForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!confirm('This will process items in the queue. Are you sure?')) {
+            return;
+        }
+        
+        const formData = new FormData(this);
+        formData.set('convert_to_audio', document.getElementById('convert_to_audio').checked);
+        
+        fetch('/process', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('processResults').textContent = JSON.stringify(data.results, null, 2);
+                new bootstrap.Modal(document.getElementById('processResultsModal')).show();
+                setTimeout(() => location.reload(), 5000);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    });
+    
+    // View Item
+    function viewItem(id) {
+        fetch(`/item/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('itemJson').textContent = JSON.stringify(data.item, null, 2);
+                
+                // Show retry button if the item is failed
+                const retryBtn = document.getElementById('retryItemBtn');
+                if (data.item.status === 'failed') {
+                    retryBtn.style.display = 'inline-block';
+                    retryBtn.onclick = function() { retryItem(id); };
+                } else {
+                    retryBtn.style.display = 'none';
+                }
+                
+                new bootstrap.Modal(document.getElementById('viewItemModal')).show();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+    
+    // Delete Item
+    function deleteItem(id) {
+        if (!confirm('Are you sure you want to delete this item?')) {
+            return;
+        }
+        
+        fetch(`/item/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Item deleted successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+    
+    // Retry Item
+    function retryItem(id) {
+        if (!confirm('Are you sure you want to retry this item?')) {
+            return;
+        }
+        
+        fetch(`/item/${id}/retry`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Item queued for retry!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+</script>
+{% endblock %}
