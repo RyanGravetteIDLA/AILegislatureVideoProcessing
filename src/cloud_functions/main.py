@@ -3,7 +3,16 @@ Idaho Legislature Media Portal API - Cloud Functions Main Entry Point
 """
 
 import logging
+import os
+import sys
 from datetime import datetime
+
+# Add directories to Python path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+# Import services
 from services.gateway_service import route_request
 
 # Configure logging

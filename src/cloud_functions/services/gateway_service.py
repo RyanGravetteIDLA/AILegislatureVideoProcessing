@@ -3,15 +3,27 @@ API Gateway service for the Idaho Legislature Media Portal API.
 Routes requests to appropriate microservices.
 """
 
-from ..common.utils import (
-    setup_logging, 
-    create_response, 
-    create_error_response,
-    create_options_response,
-    parse_request_path
-)
-from .health_service import handle_health_request
-from .video_service import handle_videos_request, handle_video_request
+# Handle both direct import and relative import
+try:
+    from ..common.utils import (
+        setup_logging, 
+        create_response, 
+        create_error_response,
+        create_options_response,
+        parse_request_path
+    )
+    from .health_service import handle_health_request
+    from .video_service import handle_videos_request, handle_video_request
+except ImportError:
+    from common.utils import (
+        setup_logging, 
+        create_response, 
+        create_error_response,
+        create_options_response,
+        parse_request_path
+    )
+    from services.health_service import handle_health_request
+    from services.video_service import handle_videos_request, handle_video_request
 
 # Set up logging
 logger = setup_logging('gateway_service')

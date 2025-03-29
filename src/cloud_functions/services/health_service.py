@@ -3,7 +3,11 @@ Health service for the Idaho Legislature Media Portal API.
 """
 
 from datetime import datetime
-from ..common.utils import setup_logging, create_response
+# Handle both direct import and relative import
+try:
+    from ..common.utils import setup_logging, create_response
+except ImportError:
+    from common.utils import setup_logging, create_response
 
 # Set up logging
 logger = setup_logging('health_service')

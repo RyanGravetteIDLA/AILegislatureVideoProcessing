@@ -3,9 +3,15 @@ Video service for the Idaho Legislature Media Portal API.
 Provides access to video data.
 """
 
-from ..common.utils import setup_logging, create_response, create_error_response
-from ..common.db_service import get_db_client, get_mock_videos
-from ..models.video import VideoItem
+# Handle both direct import and relative import
+try:
+    from ..common.utils import setup_logging, create_response, create_error_response
+    from ..common.db_service import get_db_client, get_mock_videos
+    from ..models.video import VideoItem
+except ImportError:
+    from common.utils import setup_logging, create_response, create_error_response
+    from common.db_service import get_db_client, get_mock_videos
+    from models.video import VideoItem
 
 # Set up logging
 logger = setup_logging('video_service')

@@ -15,12 +15,33 @@ echo "  Function Name: $FUNCTION_NAME"
 echo "  Service Account: $SERVICE_ACCOUNT"
 echo ""
 
-# Create a deployment directory
-mkdir -p deploy
-cp -r src/cloud_functions/* deploy/
+# Clean up previous deployment if it exists
+rm -rf deploy_cf
+mkdir -p deploy_cf
+
+# Create a flat structure for deployment
+echo "Creating deployment structure..."
+cp src/cloud_functions/main.py deploy_cf/
+cp src/cloud_functions/requirements.txt deploy_cf/
+
+# Create necessary directories
+mkdir -p deploy_cf/services
+mkdir -p deploy_cf/common
+mkdir -p deploy_cf/models
+
+# Copy files
+cp src/cloud_functions/services/*.py deploy_cf/services/
+cp src/cloud_functions/common/*.py deploy_cf/common/
+cp src/cloud_functions/models/*.py deploy_cf/models/
+
+# Create empty __init__.py files for Python packages
+touch deploy_cf/__init__.py
+touch deploy_cf/services/__init__.py
+touch deploy_cf/common/__init__.py
+touch deploy_cf/models/__init__.py
 
 # Move to the deployment directory
-cd deploy
+cd deploy_cf
 
 # Deploy the function
 echo "Deploying Cloud Function..."
@@ -54,4 +75,4 @@ fi
 
 # Clean up
 cd ..
-rm -rf deploy
+rm -rf deploy_cf
