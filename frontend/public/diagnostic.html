@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Diagnostic Tool</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+    h1, h2 {
+      margin-top: 0;
+    }
+    .btn {
+      background-color: #486581;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn:hover {
+      background-color: #334e68;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow: auto;
+      max-height: 400px;
+      white-space: pre-wrap;
+    }
+    .error {
+      color: #e53e3e;
+    }
+    .success {
+      color: #38a169;
+    }
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    input, select {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      flex-grow: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>API Diagnostic Tool</h1>
+      <p>This tool helps diagnose issues with the API connection.</p>
+    </div>
+
+    <div class="card">
+      <h2>Environment Configuration</h2>
+      <div id="env-info">Loading environment info...</div>
+    </div>
+
+    <div class="card">
+      <h2>API Health Check</h2>
+      <button id="check-health" class="btn">Check API Health</button>
+      <div id="health-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>Videos Endpoint Test</h2>
+      <button id="fetch-videos" class="btn">Fetch Videos</button>
+      <div id="videos-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>CORS Test</h2>
+      <button id="test-cors" class="btn">Test CORS</button>
+      <div id="cors-result"></div>
+    </div>
+
+    <div class="card">
+      <h2>Custom API Request</h2>
+      <div class="input-group">
+        <select id="request-method">
+          <option value="GET">GET</option>
+          <option value="POST">POST</option>
+        </select>
+        <input id="request-url" type="text" placeholder="API Endpoint (e.g., /api/videos)" value="/api/videos" />
+      </div>
+      <button id="send-request" class="btn">Send Request</button>
+      <div id="request-result"></div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const API_URL = 'https://media-portal-api-6alz6huq6a-uw.a.run.app';
+    const FILE_SERVER_URL = 'https://storage.googleapis.com/legislativevideoreviewswithai.firebasestorage.app';
+    
+    // Alternative URLs (uncomment to use)
+    // const API_URL = 'https://us-west1-legislativevideoreviewswithai.cloudfunctions.net/media-portal-api';
+    // const API_URL = 'https://media-portal-backend-6alz6huq6a-uw.a.run.app';
+    // const API_URL = 'https://media-portal-backend-335217295357.us-west1.run.app';
+
+    // Display environment info
+    document.getElementById('env-info').innerHTML = `
+      <pre>
+API_URL: ${API_URL}
+FILE_SERVER_URL: ${FILE_SERVER_URL}
+Current Page URL: ${window.location.href}
+      </pre>
+    `;
+
+    // Health check
+    document.getElementById('check-health').addEventListener('click', async () => {
+      const resultElement = document.getElementById('health-result');
+      resultElement.innerHTML = '<p>Checking API health...</p>';
+      console.log(`Fetching from: ${API_URL}/api/health`);
+      
+      try {
+        const response = await fetch(`${API_URL}/api/health`);
+        console.log('Health check response:', response);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Health check data:', data);
+        
+        resultElement.innerHTML = `
+          <p class="success">✅ API is healthy</p>
+          <p>Status: ${response.status} ${response.statusText}</p>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        console.error('Health check error:', error);
+        resultElement.innerHTML = `
+          <p class="error">❌ API health check failed</p>
+          <pre class="error">${error.message}</pre>
+        `;
+      }
+    });
+
+    // Fetch videos
+    document.getElementById('fetch-videos').addEventListener('click', async () => {
+      const resultElement = document.getElementById('videos-result');
+      resultElement.innerHTML = '<p>Fetching videos...</p>';
+      console.log(`Fetching from: ${API_URL}/api/videos`);
+      
+      try {
+        const response = await fetch(`${API_URL}/api/videos`);
+        console.log('Videos response:', response);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Videos data:', data);
+        
+        resultElement.innerHTML = `
+          <p class="success">✅ Fetched ${data.length} videos</p>
+          <p>Status: ${response.status} ${response.statusText}</p>
+          <pre>${JSON.stringify(data.slice(0, 2), null, 2)}</pre>
+          <p><i>(Showing first 2 videos only)</i></p>
+        `;
+      } catch (error) {
+        console.error('Videos error:', error);
+        resultElement.innerHTML = `
+          <p class="error">❌ Failed to fetch videos</p>
+          <pre class="error">${error.message}</pre>
+        `;
+      }
+    });
+
+    // Test CORS
+    document.getElementById('test-cors').addEventListener('click', async () => {
+      const resultElement = document.getElementById('cors-result');
+      resultElement.innerHTML = '<p>Testing CORS...</p>';
+      
+      try {
+        const response = await fetch(`${API_URL}/api/health`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Origin': window.location.origin
+          },
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        resultElement.innerHTML = `
+          <p class="success">✅ CORS is properly configured</p>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+          <p>Response headers:</p>
+          <pre>${Array.from(response.headers).map(h => h.join(': ')).join('\n')}</pre>
+        `;
+      } catch (error) {
+        resultElement.innerHTML = `
+          <p class="error">❌ CORS test failed</p>
+          <pre class="error">${error.message}</pre>
+        `;
+      }
+    });
+
+    // Custom request
+    document.getElementById('send-request').addEventListener('click', async () => {
+      const resultElement = document.getElementById('request-result');
+      const method = document.getElementById('request-method').value;
+      let url = document.getElementById('request-url').value;
+      
+      // Add API_URL if the URL doesn't already start with it
+      if (!url.startsWith('http')) {
+        // Fix URL joining
+        if (url.startsWith('/')) {
+          url = `${API_URL}${url}`;
+        } else {
+          url = `${API_URL}/${url}`;
+        }
+      }
+      
+      console.log(`Sending ${method} request to: ${url}`);
+      resultElement.innerHTML = `<p>Sending ${method} request to ${url}...</p>`;
+      
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Origin': window.location.origin
+          }
+        });
+        
+        console.log('Custom request response:', response);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Custom request data:', data);
+        
+        resultElement.innerHTML = `
+          <p class="success">✅ Request successful</p>
+          <p>Status: ${response.status} ${response.statusText}</p>
+          <p>Headers:</p>
+          <pre>${Array.from(response.headers).map(h => h.join(': ')).join('\n')}</pre>
+          <p>Response Data:</p>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        console.error('Custom request error:', error);
+        resultElement.innerHTML = `
+          <p class="error">❌ Request failed</p>
+          <pre class="error">${error.message}</pre>
+        `;
+      }
+    });
+
+    // Run health check on page load
+    document.getElementById('check-health').click();
+  </script>
+</body>
+</html>
