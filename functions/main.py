@@ -11,25 +11,12 @@ import sys
 # Initialize Firebase
 initialize_app()
 
-# Add directories to Python path for imports
+# Configure Python path for local imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-src_dir = os.path.join(parent_dir, "src")
-cloud_functions_dir = os.path.join(parent_dir, "src", "cloud_functions")
+sys.path.insert(0, current_dir)
 
-# Add paths to Python path
-for path in [current_dir, parent_dir, src_dir, cloud_functions_dir]:
-    if path not in sys.path:
-        sys.path.insert(0, path)
-
-# Import services (with fallback import paths)
-try:
-    from src.cloud_functions.services.gateway_service import route_request
-except ImportError:
-    try:
-        from cloud_functions.services.gateway_service import route_request
-    except ImportError:
-        from services.gateway_service import route_request
+# Import the gateway service
+from src.cloud_functions.services.gateway_service import route_request
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
