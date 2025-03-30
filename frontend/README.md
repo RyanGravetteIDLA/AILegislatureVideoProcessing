@@ -8,7 +8,7 @@ The frontend has been configured for deployment to Firebase Hosting with the fol
 
 1. Environment Variables
    - Development: Using `http://localhost:5000/api` for local development
-   - Production: Using Cloud Run URL `https://media-portal-backend-335217295357.us-west1.run.app/api`
+   - Production: Using Firebase Cloud Functions URL for API access
 
 2. Firebase Configuration Files
    - `firebase.json` - Configures hosting settings with SPA rewrites
@@ -44,7 +44,7 @@ npm run preview
 
 ## API Integration
 
-The frontend connects to the FastAPI backend deployed on Cloud Run. It uses environment variables to determine the API endpoint:
+The frontend connects to the Firebase Cloud Functions backend. It uses environment variables to determine the API endpoint:
 
 - `VITE_API_URL` - Base URL for API requests
 - `VITE_FILE_SERVER_URL` - URL for serving media files

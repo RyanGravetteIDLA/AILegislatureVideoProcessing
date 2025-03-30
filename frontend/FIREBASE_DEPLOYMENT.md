@@ -20,7 +20,7 @@ The necessary configuration files have already been created:
 
 - `firebase.json` - Configures hosting settings including rewrites for SPA support
 - `.firebaserc` - Specifies the Firebase project ID
-- `.env.production` - Contains the production API URL pointing to Cloud Run backend
+- `.env.production` - Contains the production API URL pointing to Firebase Cloud Functions backend
 
 ## Build and Deploy
 
@@ -56,7 +56,7 @@ After deployment, verify the following:
 
 1. The application loads correctly
 2. Navigation works properly (check router)
-3. API connections are working with the Cloud Run backend
+3. API connections are working with the Firebase Cloud Functions backend
 4. Media files can be accessed from Cloud Storage
 
 ## Backend CORS Configuration
@@ -69,11 +69,11 @@ Before deploying to Firebase Hosting, update the backend CORS configuration to o
    ./update_cors.py
    ```
 
-2. Deploy the updated backend to Cloud Run (this will be done in Step 4 of the migration plan)
+2. Deploy the updated backend to Firebase Cloud Functions
 
 ## Troubleshooting
 
-- If you encounter CORS issues, ensure that your Cloud Run backend has the appropriate CORS headers
+- If you encounter CORS issues, ensure that your Cloud Functions backend has the appropriate CORS headers
 - For routing issues, check that the Firebase rewrites are correctly configured in firebase.json
 - If media files are not loading, verify the `VITE_FILE_SERVER_URL` environment variable
 

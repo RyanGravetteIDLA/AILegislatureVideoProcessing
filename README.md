@@ -258,7 +258,7 @@ The application utilizes Google Cloud services for scalable and reliable operati
 - **Google Cloud Storage**: Stores all media files (videos, audio, transcripts)
 - **Google Gemini AI**: Handles transcription and analysis
 - **Firebase/Firestore**: Hosts the web frontend and provides NoSQL database
-- **Cloud Functions**: Deploys the backend API (replaced Cloud Run)
+- **Firebase Cloud Functions**: Deploys the backend API
 - **Firebase Hosting**: Serves the frontend application
 
 Benefits of this cloud architecture:
@@ -637,10 +637,7 @@ For additional Firebase configuration details, see [FIREBASE_DEPLOYMENT.md](fron
 
 ## Testing the API
 
-The project includes a comprehensive API testing framework and a deployed Cloud Run backend at:
-```
-https://media-portal-backend-335217295357.us-west1.run.app
-```
+The project includes a comprehensive API testing framework and a deployed Firebase Cloud Functions backend.
 
 ### Automated API Testing
 
@@ -659,8 +656,8 @@ We provide a robust testing framework to verify the functionality and performanc
 # Export API responses as JSON for documentation
 ./run_real_api_tests.sh --export
 
-# Test against the new Cloud Function API
-./run_real_api_tests.sh --url https://media-portal-api-6alz6huq6a-uw.a.run.app
+# Test against the Cloud Functions API
+./run_real_api_tests.sh --url https://us-west1-legislativevideoreviewswithai.cloudfunctions.net/media-portal-api
 
 # Test against a local server
 ./run_real_api_tests.sh --url http://localhost:5000
@@ -684,28 +681,22 @@ You can also test the API endpoints directly:
 
 ```bash
 # Health check
-curl https://media-portal-api-6alz6huq6a-uw.a.run.app/api/health
+curl https://us-west1-legislativevideoreviewswithai.cloudfunctions.net/media-portal-api/api/health
 
 # Videos
-curl https://media-portal-api-6alz6huq6a-uw.a.run.app/api/videos
+curl https://us-west1-legislativevideoreviewswithai.cloudfunctions.net/media-portal-api/api/videos
 
 # Filter by year
-curl "https://media-portal-api-6alz6huq6a-uw.a.run.app/api/videos?year=2025"
+curl "https://us-west1-legislativevideoreviewswithai.cloudfunctions.net/media-portal-api/api/videos?year=2025"
 
 # Filter by category
-curl "https://media-portal-api-6alz6huq6a-uw.a.run.app/api/videos?category=House%20Chambers"
+curl "https://us-west1-legislativevideoreviewswithai.cloudfunctions.net/media-portal-api/api/videos?category=House%20Chambers"
 
 # Search
-curl "https://media-portal-api-6alz6huq6a-uw.a.run.app/api/videos?search=session"
+curl "https://us-west1-legislativevideoreviewswithai.cloudfunctions.net/media-portal-api/api/videos?search=session"
 ```
 
-Alternatively, you can use the Cloud Function URL:
-
-```bash
-curl https://us-west1-legislativevideoreviewswithai.cloudfunctions.net/media-portal-api/api/health
-```
-
-For troubleshooting and connection issues, see [TEST_API_CONNECTION.md](TEST_API_CONNECTION.md) or use the diagnostic page at https://legislativevideoreviewswithai.web.app/diagnostic.html.
+For troubleshooting and connection issues, use the diagnostic page at https://legislativevideoreviewswithai.web.app/diagnostic.html.
 
 ### API Endpoints Reference
 
@@ -723,7 +714,7 @@ For troubleshooting and connection issues, see [TEST_API_CONNECTION.md](TEST_API
 
 ### Common Issues
 
-- **CORS**: Verify CORS settings in `src/api_firestore.py` if the frontend can't connect
+- **CORS**: Verify CORS settings in `src/cloud_functions/main.py` if the frontend can't connect
 - **Environment Variables**: Check `.env.production` for correct API URLs
 - **Cloud Storage**: Ensure your service account has proper permissions
 - **Firestore Connection**: Verify database connectivity if no data appears
