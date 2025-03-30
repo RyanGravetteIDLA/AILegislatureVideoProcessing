@@ -25,10 +25,25 @@ fi
 cd "$(dirname "$0")/functions"
 echo "Working in $(pwd)"
 
+# Ensure virtual environment is set up
+if [ ! -d "venv" ]; then
+    echo "Creating Python virtual environment..."
+    python3 -m venv venv
+fi
+
+# Activate the virtual environment and install dependencies
+echo "Activating virtual environment and installing dependencies..."
+source venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+
 # Deploy the function using Firebase CLI
 echo "Deploying Cloud Function using Firebase CLI..."
 firebase use legislativevideoreviewswithai
 firebase deploy --only functions
+
+# Deactivate the virtual environment
+deactivate
 
 # Check deployment status
 if [ $? -eq 0 ]; then
