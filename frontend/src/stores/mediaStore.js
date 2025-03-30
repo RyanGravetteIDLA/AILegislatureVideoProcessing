@@ -9,7 +9,31 @@ const NORMALIZED_API_URL = API_BASE_URL.endsWith('/api')
   ? API_BASE_URL 
   : `${API_BASE_URL}/api`
 
+// Define the file server URL with a fallback
+const FILE_SERVER_URL = import.meta.env.VITE_FILE_SERVER_URL || 'http://localhost:5001'
+
 console.log('Using API URL:', NORMALIZED_API_URL)
+console.log('Using File Server URL:', FILE_SERVER_URL)
+
+// Helper function to ensure URLs are complete
+const ensureCompleteUrl = (url) => {
+  if (!url) return url
+  
+  // If the URL is already absolute (starts with http:// or https://), return it as is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  
+  // If the URL starts with /api/files/, prefix it with the file server URL
+  if (url.startsWith('/api/files/')) {
+    // Remove the /api prefix since the file server URL already includes it
+    const path = url.replace(/^\/api/, '')
+    return `${FILE_SERVER_URL}${path}`
+  }
+  
+  // Return the URL as is in other cases
+  return url
+}
 
 // Create an axios instance with common configuration
 const api = axios.create({
@@ -145,92 +169,6 @@ export const useMediaStore = defineStore('media', {
   },
   
   actions: {
-    // Mock data for fallback when API is unavailable
-    getMockVideos() {
-      return [
-        {
-          id: 1,
-          title: 'House Chambers - January 7, 2025',
-          description: 'Legislative Session Day 1',
-          year: '2025',
-          category: 'House Chambers',
-          date: '2025-01-07',
-          duration: '01:25:30',
-          thumbnail: 'https://via.placeholder.com/300x180',
-          url: 'https://example.com/video1.mp4'
-        },
-        {
-          id: 2,
-          title: 'House Chambers - January 8, 2025',
-          description: 'Legislative Session Day 2',
-          year: '2025',
-          category: 'House Chambers',
-          date: '2025-01-08',
-          duration: '01:15:20',
-          thumbnail: 'https://via.placeholder.com/300x180',
-          url: 'https://example.com/video2.mp4'
-        },
-        {
-          id: 3,
-          title: 'Senate Chambers - January 7, 2025',
-          description: 'Legislative Session Day 1',
-          year: '2025',
-          category: 'Senate Chambers',
-          date: '2025-01-07',
-          duration: '01:45:10',
-          thumbnail: 'https://via.placeholder.com/300x180',
-          url: 'https://example.com/video3.mp4'
-        }
-      ]
-    },
-    
-    getMockAudio() {
-      return [
-        {
-          id: 1,
-          title: 'House Chambers - January 7, 2025 (Audio)',
-          description: 'Legislative Session Day 1',
-          year: '2025',
-          category: 'House Chambers',
-          date: '2025-01-07',
-          duration: '01:25:30',
-          url: 'https://example.com/audio1.mp3'
-        },
-        {
-          id: 2,
-          title: 'House Chambers - January 8, 2025 (Audio)',
-          description: 'Legislative Session Day 2',
-          year: '2025',
-          category: 'House Chambers',
-          date: '2025-01-08',
-          duration: '01:15:20',
-          url: 'https://example.com/audio2.mp3'
-        }
-      ]
-    },
-    
-    getMockTranscripts() {
-      return [
-        {
-          id: 1,
-          title: 'House Chambers - January 7, 2025 (Transcript)',
-          description: 'Legislative Session Day 1',
-          year: '2025',
-          category: 'House Chambers',
-          date: '2025-01-07',
-          url: 'https://example.com/transcript1.pdf'
-        },
-        {
-          id: 2,
-          title: 'House Chambers - January 8, 2025 (Transcript)',
-          description: 'Legislative Session Day 2',
-          year: '2025',
-          category: 'House Chambers',
-          date: '2025-01-08',
-          url: 'https://example.com/transcript2.pdf'
-        }
-      ]
-    },
     
     // Fetch videos from API
     async fetchVideos() {
@@ -258,8 +196,33 @@ export const useMediaStore = defineStore('media', {
         
         // Process response
         if (response.data && Array.isArray(response.data)) {
-          this.videos = response.data
-          console.log(`Loaded ${this.videos.length} videos`)
+          // Process URLs to ensure they're complete and handle enhanced fields
+          this.videos = response.data.map(video => {
+            // Process the main video URL
+            const processedVideo = {
+              ...video,
+              url: ensureCompleteUrl(video.url)
+            }
+            
+            // Process related media URLs if they exist
+            if (video.related_audio_url) {
+              processedVideo.related_audio_url = ensureCompleteUrl(video.related_audio_url)
+            }
+            if (video.related_transcript_url) {
+              processedVideo.related_transcript_url = ensureCompleteUrl(video.related_transcript_url)
+            }
+            if (video.related_video_url) {
+              processedVideo.related_video_url = ensureCompleteUrl(video.related_video_url)
+            }
+            
+            return processedVideo
+          })
+          console.log(`Loaded ${this.videos.length} videos with enhanced data`)
+          
+          // Log the first video for debugging
+          if (this.videos.length > 0) {
+            console.log('First video item sample:', this.videos[0])
+          }
           
           // Update filter options if they weren't already loaded
           if (this.years.length === 0) {
@@ -273,13 +236,13 @@ export const useMediaStore = defineStore('media', {
         console.error('Error fetching videos:', error)
         this.error = 'Failed to load videos from the server'
         
-        // Use mock data as fallback
-        this.videos = this.getMockVideos()
-        console.log('Using mock data as fallback')
+        // Set empty arrays
+        this.videos = []
+        console.log('API request failed, no videos loaded')
         
-        // Also set filter options from mock data
-        this.years = [...new Set(this.videos.map(video => video.year))]
-        this.categories = [...new Set(this.videos.map(video => video.category))]
+        // Set empty filter options
+        this.years = []
+        this.categories = []
       } finally {
         this.loading = false
       }
@@ -313,8 +276,26 @@ export const useMediaStore = defineStore('media', {
         // Process response
         if (response.data && Array.isArray(response.data)) {
           console.log('Raw audio response data:', response.data)
-          this.audio = response.data
-          console.log(`Loaded ${this.audio.length} audio files`)
+          
+          // Process URLs to ensure they're complete and handle enhanced fields
+          this.audio = response.data.map(audio => {
+            // Process the main audio URL
+            const processedAudio = {
+              ...audio,
+              url: ensureCompleteUrl(audio.url)
+            }
+            
+            // Process related media URLs if they exist
+            if (audio.related_video_url) {
+              processedAudio.related_video_url = ensureCompleteUrl(audio.related_video_url)
+            }
+            if (audio.related_transcript_url) {
+              processedAudio.related_transcript_url = ensureCompleteUrl(audio.related_transcript_url)
+            }
+            
+            return processedAudio
+          })
+          console.log(`Loaded ${this.audio.length} audio files with enhanced data`)
           
           if (this.audio.length > 0) {
             console.log('First audio item sample:', this.audio[0])
@@ -341,9 +322,9 @@ export const useMediaStore = defineStore('media', {
         console.error('Error fetching audio:', error)
         this.error = 'Failed to load audio from the server'
         
-        // Use mock data as fallback
-        this.audio = this.getMockAudio()
-        console.log('Using mock data as fallback')
+        // Set empty array
+        this.audio = []
+        console.log('API request failed, no audio loaded')
       } finally {
         this.loading = false
       }
@@ -377,8 +358,26 @@ export const useMediaStore = defineStore('media', {
         // Process response
         if (response.data && Array.isArray(response.data)) {
           console.log('Raw transcripts response data:', response.data)
-          this.transcripts = response.data
-          console.log(`Loaded ${this.transcripts.length} transcripts`)
+          
+          // Process URLs to ensure they're complete and handle enhanced fields
+          this.transcripts = response.data.map(transcript => {
+            // Process the main transcript URL
+            const processedTranscript = {
+              ...transcript,
+              url: ensureCompleteUrl(transcript.url)
+            }
+            
+            // Process related media URLs if they exist
+            if (transcript.related_video_url) {
+              processedTranscript.related_video_url = ensureCompleteUrl(transcript.related_video_url)
+            }
+            if (transcript.related_audio_url) {
+              processedTranscript.related_audio_url = ensureCompleteUrl(transcript.related_audio_url)
+            }
+            
+            return processedTranscript
+          })
+          console.log(`Loaded ${this.transcripts.length} transcripts with enhanced data`)
           
           if (this.transcripts.length > 0) {
             console.log('First transcript item sample:', this.transcripts[0])
@@ -407,9 +406,9 @@ export const useMediaStore = defineStore('media', {
         console.error('Error fetching transcripts:', error)
         this.error = 'Failed to load transcripts from the server'
         
-        // Use mock data as fallback
-        this.transcripts = this.getMockTranscripts()
-        console.log('Using mock data as fallback')
+        // Set empty array
+        this.transcripts = []
+        console.log('API request failed, no transcripts loaded')
       } finally {
         this.loading = false
       }
@@ -428,8 +427,25 @@ export const useMediaStore = defineStore('media', {
           const response = await api.get(`/${type}/${id}`, { timeout: 15000 })
           
           if (response.data) {
-            console.log(`Loaded ${type} item:`, response.data)
-            return response.data
+            // Process URLs to ensure they're complete and handle enhanced fields
+            const item = {
+              ...response.data,
+              url: ensureCompleteUrl(response.data.url)
+            }
+            
+            // Process related media URLs if they exist
+            if (response.data.related_video_url) {
+              item.related_video_url = ensureCompleteUrl(response.data.related_video_url)
+            }
+            if (response.data.related_audio_url) {
+              item.related_audio_url = ensureCompleteUrl(response.data.related_audio_url)
+            }
+            if (response.data.related_transcript_url) {
+              item.related_transcript_url = ensureCompleteUrl(response.data.related_transcript_url)
+            }
+            
+            console.log(`Loaded ${type} item with enhanced data:`, item)
+            return item
           } else {
             throw new Error(`No ${type} item found with ID: ${id}`)
           }
@@ -475,6 +491,62 @@ export const useMediaStore = defineStore('media', {
       }
     },
     
+    // Get related media (audio and transcript) for a video using the enhanced API endpoint
+    async getVideoRelatedMedia(videoId) {
+      if (!videoId) {
+        console.warn('No video ID provided to getVideoRelatedMedia')
+        return { audio: null, transcript: null }
+      }
+      
+      try {
+        console.log(`Fetching related media for video ID: ${videoId}`)
+        const response = await api.get(`/videos/${videoId}/related`, { timeout: 15000 })
+        
+        if (response.data) {
+          const result = {
+            audio: null,
+            transcript: null
+          }
+          
+          // Process the audio if available
+          if (response.data.audio) {
+            // Ensure the URL is complete
+            result.audio = {
+              ...response.data.audio,
+              url: ensureCompleteUrl(response.data.audio.url || response.data.audio.gcs_path || '')
+            }
+          }
+          
+          // Process the transcript if available
+          if (response.data.transcript) {
+            // Ensure the URL is complete
+            result.transcript = {
+              ...response.data.transcript,
+              url: ensureCompleteUrl(response.data.transcript.url || response.data.transcript.gcs_path || '')
+            }
+          }
+          
+          console.log('Found related media for video:', result)
+          return result
+        } else {
+          console.warn(`No related media found for video ${videoId}`)
+          return { audio: null, transcript: null }
+        }
+      } catch (error) {
+        console.error(`Error fetching related media for video ${videoId}:`, error)
+        
+        // Fall back to the traditional method when API fails
+        console.log('Falling back to traditional related media matching method')
+        const audio = await this.getRelatedAudio({ id: videoId })
+        const transcript = await this.getRelatedTranscript({ id: videoId })
+        
+        return {
+          audio,
+          transcript
+        }
+      }
+    },
+    
     // Get transcripts related to a video
     async getTranscriptsForVideo(videoId) {
       if (!videoId) {
@@ -487,8 +559,13 @@ export const useMediaStore = defineStore('media', {
         const response = await api.get(`/videos/${videoId}/transcripts`, { timeout: 15000 })
         
         if (response.data && Array.isArray(response.data)) {
-          console.log(`Found ${response.data.length} transcripts for video ID ${videoId}:`, response.data)
-          return response.data
+          // Process URLs to ensure they're complete
+          const transcripts = response.data.map(transcript => ({
+            ...transcript,
+            url: ensureCompleteUrl(transcript.url)
+          }))
+          console.log(`Found ${transcripts.length} transcripts for video ID ${videoId}:`, transcripts)
+          return transcripts
         } else {
           console.warn(`No transcripts found for video ID ${videoId}`)
           return []
@@ -499,7 +576,7 @@ export const useMediaStore = defineStore('media', {
       }
     },
     
-    // Get audio related to a video using session_id or related_audio_id
+    // Get audio related to a video using enhanced fields
     async getRelatedAudio(video) {
       if (!video || !video.id) {
         console.warn('Invalid video provided to getRelatedAudio')
@@ -508,18 +585,33 @@ export const useMediaStore = defineStore('media', {
       
       console.log(`Finding related audio for video: "${video.title}"`)
       
-      // Strategy 0: Check if the video already has a direct audio URL
-      if (video.related_audio_url) {
-        console.log(`Video already has direct related_audio_url: ${video.related_audio_url}`)
-        // Create a minimal audio object if we only have the URL
+      // Strategy 0: Check if the video already has a direct audio URL with enhanced fields
+      if (video.related_audio_url && video.related_audio_id) {
+        console.log(`Video has complete related audio information: ID=${video.related_audio_id}, URL=${video.related_audio_url}`)
+        // Try to get the complete audio object
+        try {
+          const audioItem = await this.getItemById('audio', video.related_audio_id)
+          if (audioItem) {
+            console.log(`Found complete related audio via related_audio_id: ${audioItem.title}`)
+            return audioItem
+          }
+        } catch (err) {
+          console.warn(`Couldn't fetch complete audio ${video.related_audio_id}, using minimal object instead`, err)
+        }
+        
+        // Fallback to creating a minimal audio object if we can't fetch the complete one
         return {
-          id: video.related_audio_id || 'unknown',
+          id: video.related_audio_id,
           title: `Audio for ${video.title}`,
-          url: video.related_audio_url
+          url: video.related_audio_url,
+          year: video.year,
+          category: video.category,
+          session_id: video.session_id,
+          session_name: video.session_name
         }
       }
       
-      // Strategy 1: Check if the video has a related_audio_id field
+      // Strategy 1: Check if the video has related_audio_id field (for backward compatibility)
       if (video.related_audio_id) {
         try {
           console.log(`Video has related_audio_id: ${video.related_audio_id}`)
@@ -748,7 +840,7 @@ export const useMediaStore = defineStore('media', {
       return null
     },
     
-    // Get transcript related to a video using session_id or related_transcript_id
+    // Get transcript related to a video using enhanced fields
     async getRelatedTranscript(video) {
       if (!video || !video.id) {
         console.warn('Invalid video provided to getRelatedTranscript')
@@ -757,18 +849,33 @@ export const useMediaStore = defineStore('media', {
       
       console.log(`Finding related transcript for video: "${video.title}"`)
       
-      // Strategy 0: Check if the video already has a direct transcript URL
-      if (video.related_transcript_url) {
-        console.log(`Video already has direct related_transcript_url: ${video.related_transcript_url}`)
-        // Create a minimal transcript object if we only have the URL
+      // Strategy 0: Check if the video already has direct transcript URL with enhanced fields
+      if (video.related_transcript_url && video.related_transcript_id) {
+        console.log(`Video has complete related transcript information: ID=${video.related_transcript_id}, URL=${video.related_transcript_url}`)
+        // Try to get the complete transcript object
+        try {
+          const transcriptItem = await this.getItemById('transcripts', video.related_transcript_id)
+          if (transcriptItem) {
+            console.log(`Found complete related transcript via related_transcript_id: ${transcriptItem.title}`)
+            return transcriptItem
+          }
+        } catch (err) {
+          console.warn(`Couldn't fetch complete transcript ${video.related_transcript_id}, using minimal object instead`, err)
+        }
+        
+        // Fallback to creating a minimal transcript object if we can't fetch the complete one
         return {
-          id: video.related_transcript_id || 'unknown',
+          id: video.related_transcript_id,
           title: `Transcript for ${video.title}`,
-          url: video.related_transcript_url
+          url: video.related_transcript_url,
+          year: video.year,
+          category: video.category,
+          session_id: video.session_id,
+          session_name: video.session_name
         }
       }
       
-      // Strategy 1: Check if the video has a related_transcript_id field
+      // Strategy 1: Check if the video has a related_transcript_id field (for backward compatibility)
       if (video.related_transcript_id) {
         try {
           console.log(`Video has related_transcript_id: ${video.related_transcript_id}`)

@@ -21,6 +21,12 @@ class VideoItem:
         url: URL to access the video
         duration: Duration of the video
         thumbnail: URL to a thumbnail image
+        session_id: Unique identifier for the legislative session
+        session_name: Name of the legislative session
+        related_audio_id: ID of related audio file
+        related_audio_url: URL of related audio file
+        related_transcript_id: ID of related transcript
+        related_transcript_url: URL of related transcript
     """
 
     id: str
@@ -32,6 +38,12 @@ class VideoItem:
     date: Optional[str] = None
     duration: Optional[str] = None
     thumbnail: Optional[str] = None
+    session_id: Optional[str] = None
+    session_name: Optional[str] = None
+    related_audio_id: Optional[str] = None
+    related_audio_url: Optional[str] = None
+    related_transcript_id: Optional[str] = None
+    related_transcript_url: Optional[str] = None
 
     @classmethod
     def from_firestore(cls, doc_id, doc_data):
@@ -66,6 +78,28 @@ class VideoItem:
             # Fallback to original path if available
             url = f"/api/files/{doc_data.get('year', 'unknown')}/{doc_data.get('category', 'unknown')}/{doc_data.get('file_name', 'unknown')}"
 
+        # Get related audio information
+        related_audio_id = doc_data.get("related_audio_id")
+        related_audio_url = None
+        if related_audio_id:
+            related_audio_path = doc_data.get("related_audio_path")
+            if related_audio_path:
+                related_audio_url = f"/api/files/gcs/{related_audio_path}"
+            else:
+                # If we have an ID but no path, create a direct API URL
+                related_audio_url = f"/api/audio/{related_audio_id}"
+
+        # Get related transcript information
+        related_transcript_id = doc_data.get("related_transcript_id")
+        related_transcript_url = None
+        if related_transcript_id:
+            related_transcript_path = doc_data.get("related_transcript_path")
+            if related_transcript_path:
+                related_transcript_url = f"/api/files/gcs/{related_transcript_path}"
+            else:
+                # If we have an ID but no path, create a direct API URL
+                related_transcript_url = f"/api/transcripts/{related_transcript_id}"
+
         return cls(
             id=doc_id,
             title=title,
@@ -76,6 +110,12 @@ class VideoItem:
             duration=doc_data.get("duration", "00:00:00"),
             thumbnail=doc_data.get("thumbnail", None),
             url=url,
+            session_id=doc_data.get("session_id"),
+            session_name=doc_data.get("session_name"),
+            related_audio_id=related_audio_id,
+            related_audio_url=related_audio_url, 
+            related_transcript_id=related_transcript_id,
+            related_transcript_url=related_transcript_url,
         )
 
     def to_dict(self):
@@ -95,4 +135,10 @@ class VideoItem:
             "duration": self.duration,
             "thumbnail": self.thumbnail,
             "url": self.url,
+            "session_id": self.session_id,
+            "session_name": self.session_name,
+            "related_audio_id": self.related_audio_id,
+            "related_audio_url": self.related_audio_url,
+            "related_transcript_id": self.related_transcript_id,
+            "related_transcript_url": self.related_transcript_url,
         }

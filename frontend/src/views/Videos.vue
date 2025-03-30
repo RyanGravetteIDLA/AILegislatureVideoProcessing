@@ -143,15 +143,52 @@ watch([selectedYear, selectedCategory], () => {
 // Find related audio and transcripts for a video
 const findRelatedMedia = async (video) => {
   console.log('Finding related media for video:', video)
-  console.log('Available audio items:', mediaStore.audio.length)
-  console.log('Available transcript items:', mediaStore.transcripts.length)
   
   if (!video || !video.id) {
     console.warn('Video missing ID or invalid:', video)
     return { audio: null, transcript: null }
   }
   
-  // Use the new relationship methods to find related media
+  // Check if the video already has direct URL references from the API
+  if (video.related_audio_url && video.related_transcript_url) {
+    console.log('Video already has direct related media URLs from API')
+    
+    // Return minimal objects with just the necessary URLs
+    return {
+      audio: {
+        id: video.related_audio_id,
+        title: `Audio for ${video.title}`,
+        url: video.related_audio_url,
+      },
+      transcript: {
+        id: video.related_transcript_id,
+        title: `Transcript for ${video.title}`,
+        url: video.related_transcript_url,
+      }
+    }
+  }
+  
+  // Try the new unified related media endpoint first
+  try {
+    console.log(`Using enhanced related media endpoint for video ID: ${video.id}`)
+    const result = await mediaStore.getVideoRelatedMedia(video.id)
+    
+    if (result.audio || result.transcript) {
+      console.log('Found related media from unified endpoint:', {
+        audio: result.audio ? result.audio.title || 'Untitled Audio' : 'None',
+        transcript: result.transcript ? result.transcript.title || 'Untitled Transcript' : 'None'
+      })
+      return result
+    }
+  } catch (error) {
+    console.warn('Error using enhanced related media endpoint:', error)
+  }
+  
+  // Fall back to the previous methods if the new endpoint fails
+  console.log('Falling back to individual relation lookups')
+  console.log('Available audio items:', mediaStore.audio.length)
+  console.log('Available transcript items:', mediaStore.transcripts.length)
+  
   let [relatedAudio, relatedTranscript] = await Promise.all([
     mediaStore.getRelatedAudio(video),
     mediaStore.getRelatedTranscript(video)
@@ -172,18 +209,46 @@ const findRelatedMedia = async (video) => {
 const enhanceVideosWithRelatedMedia = async (videos) => {
   const enhancedVideos = []
   
+  // Count videos with direct URL references for tracking
+  let videosWithDirectUrls = 0
+  
   // Process videos sequentially to avoid too many simultaneous API calls
   for (const video of videos) {
     try {
-      const related = await findRelatedMedia(video)
-      enhancedVideos.push({
-        ...video,
-        relatedAudio: related.audio,
-        relatedTranscript: related.transcript,
-        // Add direct URL references for faster access
-        related_audio_url: related.audio ? related.audio.url : null,
-        related_transcript_url: related.transcript ? related.transcript.url : null
-      })
+      // Check if the video already has URL references from the API
+      if (video.related_audio_url || video.related_transcript_url) {
+        videosWithDirectUrls++
+        
+        // Create minimal objects for the UI
+        const relatedAudio = video.related_audio_url ? {
+          id: video.related_audio_id,
+          title: `Audio for ${video.title}`,
+          url: video.related_audio_url,
+        } : null;
+        
+        const relatedTranscript = video.related_transcript_url ? {
+          id: video.related_transcript_id,
+          title: `Transcript for ${video.title}`,
+          url: video.related_transcript_url,
+        } : null;
+        
+        enhancedVideos.push({
+          ...video,
+          relatedAudio,
+          relatedTranscript
+        })
+      } else {
+        // No direct URLs, need to find related media
+        const related = await findRelatedMedia(video)
+        enhancedVideos.push({
+          ...video,
+          relatedAudio: related.audio,
+          relatedTranscript: related.transcript,
+          // Add direct URL references for faster access
+          related_audio_url: related.audio ? related.audio.url : null,
+          related_transcript_url: related.transcript ? related.transcript.url : null
+        })
+      }
     } catch (error) {
       console.error(`Error enhancing video with ID ${video.id}:`, error)
       enhancedVideos.push({
@@ -196,6 +261,7 @@ const enhanceVideosWithRelatedMedia = async (videos) => {
     }
   }
   
+  console.log(`Enhanced ${enhancedVideos.length} videos. ${videosWithDirectUrls} had direct URL references.`)
   return enhancedVideos
 }
 
@@ -275,11 +341,12 @@ onMounted(async () => {
         // Show a loading message while enhancing videos
         loading.value = true
         
-        // Use a subset of videos for faster processing during development
-        // In production, use all videos
-        const videosToProcess = mediaStore.videos.slice(0, 20) // Process first 20 videos
+        // Process all videos in production
+        // No limit to ensure we see all videos in the database
+        const videosToProcess = mediaStore.videos // Process all videos
         
         try {
+          console.log(`Processing all ${videosToProcess.length} videos for enhanced media`)
           rawVideos.value = await enhanceVideosWithRelatedMedia(videosToProcess)
           
           // Debug the first few enhanced videos
@@ -318,61 +385,9 @@ onMounted(async () => {
       console.error('API error:', apiError)
       error.value = 'Failed to load media from API'
       
-      // Use mock data as fallback
-      console.log('Using mock data as fallback')
-      rawVideos.value = [
-        {
-          id: 1,
-          title: 'Sample Video 1',
-          description: 'Legislative Session Day 1',
-          year: '2025',
-          category: 'House Chambers',
-          date: '2025-01-01',
-          url: '#',
-          relatedAudio: {
-            id: 101,
-            title: 'Sample Audio 1',
-            url: '#'
-          },
-          relatedTranscript: {
-            id: 201,
-            title: 'Sample Transcript 1',
-            url: '#'
-          },
-          related_audio_url: '#',
-          related_transcript_url: '#'
-        },
-        {
-          id: 2, 
-          title: 'Sample Video 2',
-          description: 'Legislative Session Day 2',
-          year: '2025',
-          category: 'House Chambers',
-          date: '2025-01-02',
-          url: '#',
-          relatedAudio: {
-            id: 102,
-            title: 'Sample Audio 2',
-            url: '#'
-          },
-          relatedTranscript: null,
-          related_audio_url: '#',
-          related_transcript_url: null
-        },
-        {
-          id: 3, 
-          title: 'Sample Video 3',
-          description: 'Legislative Session Day 10',
-          year: '2025',
-          category: 'House Chambers',
-          date: '2025-01-10',
-          url: '#',
-          relatedAudio: null,
-          relatedTranscript: null,
-          related_audio_url: null,
-          related_transcript_url: null
-        }
-      ]
+      // Set empty array
+      console.error('API request failed, no videos loaded')
+      rawVideos.value = []
     }
   } catch (err) {
     console.error('Component error:', err)

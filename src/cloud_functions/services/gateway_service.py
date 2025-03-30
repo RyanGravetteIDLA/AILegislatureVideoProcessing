@@ -13,7 +13,7 @@ try:
         parse_request_path,
     )
     from .health_service import handle_health_request
-    from .video_service import handle_videos_request, handle_video_request
+    from .video_service import handle_videos_request, handle_video_request, handle_video_related_media_request
     from .audio_service import handle_audio_request, handle_audio_item_request
     from .transcript_service import (
         handle_transcripts_request,
@@ -31,7 +31,7 @@ except ImportError:
         parse_request_path,
     )
     from services.health_service import handle_health_request
-    from services.video_service import handle_videos_request, handle_video_request
+    from services.video_service import handle_videos_request, handle_video_request, handle_video_related_media_request
     from services.audio_service import handle_audio_request, handle_audio_item_request
     from services.transcript_service import (
         handle_transcripts_request,
@@ -124,6 +124,17 @@ def route_request(request):
             if len(parts) >= 4:
                 video_id = parts[-2]
                 return handle_video_transcripts_request(video_id)
+            else:
+                return create_error_response("Invalid video ID", 400)
+
+        # Video related media endpoint
+        elif path.startswith("/api/videos/") and path.endswith("/related"):
+            # Extract video_id from path
+            # Format: /api/videos/{video_id}/related
+            parts = path.split("/")
+            if len(parts) >= 4:
+                video_id = parts[-2]
+                return handle_video_related_media_request(video_id)
             else:
                 return create_error_response("Invalid video ID", 400)
 
