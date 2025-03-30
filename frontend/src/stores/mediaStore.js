@@ -499,8 +499,15 @@ export const useMediaStore = defineStore('media', {
       }
       
       try {
-        console.log(`Fetching related media for video ID: ${videoId}`)
-        const response = await api.get(`/videos/${videoId}/related`, { timeout: 15000 })
+        // Determine if we're using the new API format or old API format
+        const apiUrl = api.defaults.baseURL;
+        const isNewApiFormat = apiUrl.includes('cloud-function-api') || apiUrl.includes('media_portal_api');
+        
+        // Adjust endpoint based on API format
+        const endpoint = isNewApiFormat ? `/videos/${videoId}/related` : `/api/videos/${videoId}/related`;
+        
+        console.log(`Fetching related media for video ID: ${videoId} using endpoint: ${endpoint}`)
+        const response = await api.get(endpoint, { timeout: 15000 })
         
         if (response.data) {
           const result = {

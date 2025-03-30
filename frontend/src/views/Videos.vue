@@ -168,20 +168,23 @@ const findRelatedMedia = async (video) => {
     }
   }
   
-  // Try the new unified related media endpoint first
+  // Try the related media endpoint first (works with both new and old API through our adapter)
   try {
-    console.log(`Using enhanced related media endpoint for video ID: ${video.id}`)
+    console.log(`Using related media endpoint for video ID: ${video.id}`)
     const result = await mediaStore.getVideoRelatedMedia(video.id)
     
     if (result.audio || result.transcript) {
-      console.log('Found related media from unified endpoint:', {
+      console.log('Found related media from endpoint:', {
         audio: result.audio ? result.audio.title || 'Untitled Audio' : 'None',
         transcript: result.transcript ? result.transcript.title || 'Untitled Transcript' : 'None'
       })
       return result
+    } else {
+      console.log('No related media found via endpoint, will try fallback methods')
     }
   } catch (error) {
-    console.warn('Error using enhanced related media endpoint:', error)
+    console.warn('Error or not supported in current API:', error.message || error)
+    // Continue to fallback mechanisms
   }
   
   // Fall back to the previous methods if the new endpoint fails
