@@ -1,0 +1,307 @@
+{
+  "test_results": {
+    "storage_connection": true,
+    "bucket_listing": true
+  },
+  "bucket_info": {
+    "name": "legislativevideoreviewswithai.firebasestorage.app",
+    "sample_files": [
+      "2025/House Chambers/December 5, 2024_Organizational Session Day 1/1_HouseChambers12-05-2024.mp4",
+      "2025/House Chambers/February 10, 2025_Legislative Session Day 36/1_HouseChambers02-10-2025.mp4",
+      "2025/House Chambers/February 10, 2025_Legislative Session Day 36/audio/1_HouseChambers02-10-2025.mp3",
+      "2025/House Chambers/February 10, 2025_Legislative Session Day 36/audio/1_HouseChambers02-10-2025_transcription.txt",
+      "2025/House Chambers/February 11, 2025_Legislative Session Day 37/1_HouseChambers02-11-2025.mp4"
+    ],
+    "location": "US-WEST1",
+    "storage_class": "REGIONAL",
+    "created": "2025-03-28T16:19:02.276000+00:00"
+  },
+  "file_structure": {
+    "error": "'list' object has no attribute 'prefixes'"
+  },
+  "file_samples": {},
+  "media_types": {
+    "samples": {
+      "video": [
+        {
+          "name": "2025/House Chambers/December 5, 2024_Organizational Session Day 1/1_HouseChambers12-05-2024.mp4",
+          "size": 338542592,
+          "updated": "2025-03-29T05:47:03.868000+00:00",
+          "content_type": "video/mp4"
+        },
+        {
+          "name": "2025/House Chambers/February 10, 2025_Legislative Session Day 36/1_HouseChambers02-10-2025.mp4",
+          "size": 466945250,
+          "updated": "2025-03-29T05:44:16.195000+00:00",
+          "content_type": "video/mp4"
+        },
+        {
+          "name": "2025/House Chambers/February 11, 2025_Legislative Session Day 37/1_HouseChambers02-11-2025.mp4",
+          "size": 75038720,
+          "updated": "2025-03-29T05:44:06.589000+00:00",
+          "content_type": "video/mp4"
+        },
+        {
+          "name": "2025/House Chambers/February 12, 2025_Legislative Session Day 38/1_HouseChambers02-12-2025.mp4",
+          "size": 574045215,
+          "updated": "2025-03-29T05:44:04.006000+00:00",
+          "content_type": "video/mp4"
+        },
+        {
+          "name": "2025/House Chambers/February 13, 2025_Legislative Session Day 39/1_HouseChambers02-13-2025.mp4",
+          "size": 427157189,
+          "updated": "2025-03-29T05:43:53.766000+00:00",
+          "content_type": "video/mp4"
+        }
+      ],
+      "audio": [
+        {
+          "name": "2025/House Chambers/February 10, 2025_Legislative Session Day 36/audio/1_HouseChambers02-10-2025.mp3",
+          "size": 52471368,
+          "updated": "2025-03-29T05:49:10.339000+00:00",
+          "content_type": "audio/mpeg"
+        },
+        {
+          "name": "2025/House Chambers/February 12, 2025_Legislative Session Day 38/audio/1_HouseChambers02-12-2025.mp3",
+          "size": 64580900,
+          "updated": "2025-03-29T05:49:08.144000+00:00",
+          "content_type": "audio/mpeg"
+        },
+        {
+          "name": "2025/House Chambers/February 13, 2025_Legislative Session Day 39/audio/1_HouseChambers02-13-2025.mp3",
+          "size": 48333155,
+          "updated": "2025-03-29T05:49:05.794000+00:00",
+          "content_type": "audio/mpeg"
+        },
+        {
+          "name": "2025/House Chambers/February 14, 2025_Legislative Session Day 40/audio/1_HouseChambers02-14-2025.mp3",
+          "size": 86090333,
+          "updated": "2025-03-29T05:49:03.681000+00:00",
+          "content_type": "audio/mpeg"
+        },
+        {
+          "name": "2025/House Chambers/February 17, 2025_Legislative Session Day 43/audio/1_HouseChambers02-17-2025.mp3",
+          "size": 117707274,
+          "updated": "2025-03-29T05:49:00.893000+00:00",
+          "content_type": "audio/mpeg"
+        }
+      ],
+      "transcript": [
+        {
+          "name": "2025/House Chambers/February 10, 2025_Legislative Session Day 36/audio/1_HouseChambers02-10-2025_transcription.txt",
+          "size": 55583,
+          "updated": "2025-03-29T05:50:40.759000+00:00",
+          "content_type": "text/plain"
+        },
+        {
+          "name": "2025/House Chambers/February 12, 2025_Legislative Session Day 38/audio/1_HouseChambers02-12-2025_transcription.txt",
+          "size": 61259,
+          "updated": "2025-03-29T05:50:39.334000+00:00",
+          "content_type": "text/plain"
+        },
+        {
+          "name": "2025/House Chambers/February 13, 2025_Legislative Session Day 39/audio/1_HouseChambers02-13-2025_transcription.txt",
+          "size": 38579,
+          "updated": "2025-03-29T05:50:37.915000+00:00",
+          "content_type": "text/plain"
+        },
+        {
+          "name": "2025/House Chambers/February 14, 2025_Legislative Session Day 40/audio/1_HouseChambers02-14-2025_transcription.txt",
+          "size": 84564,
+          "updated": "2025-03-29T05:50:36.491000+00:00",
+          "content_type": "text/plain"
+        },
+        {
+          "name": "2025/House Chambers/February 17, 2025_Legislative Session Day 43/audio/1_HouseChambers02-17-2025_transcription.txt",
+          "size": 89344,
+          "updated": "2025-03-29T05:50:35.064000+00:00",
+          "content_type": "text/plain"
+        }
+      ]
+    }
+  },
+  "storage_paths": {
+    "detailed_patterns": {
+      "video": [
+        {
+          "full_path": "2025/House Chambers/December 5, 2024_Organizational Session Day 1/1_HouseChambers12-05-2024.mp4",
+          "segments": 4,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "December 5, 2024_Organizational Session Day 1",
+            "filename": "1_HouseChambers12-05-2024.mp4"
+          }
+        },
+        {
+          "full_path": "2025/House Chambers/February 10, 2025_Legislative Session Day 36/1_HouseChambers02-10-2025.mp4",
+          "segments": 4,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 10, 2025_Legislative Session Day 36",
+            "filename": "1_HouseChambers02-10-2025.mp4"
+          }
+        },
+        {
+          "full_path": "2025/House Chambers/February 11, 2025_Legislative Session Day 37/1_HouseChambers02-11-2025.mp4",
+          "segments": 4,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 11, 2025_Legislative Session Day 37",
+            "filename": "1_HouseChambers02-11-2025.mp4"
+          }
+        },
+        {
+          "full_path": "2025/House Chambers/February 12, 2025_Legislative Session Day 38/1_HouseChambers02-12-2025.mp4",
+          "segments": 4,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 12, 2025_Legislative Session Day 38",
+            "filename": "1_HouseChambers02-12-2025.mp4"
+          }
+        },
+        {
+          "full_path": "2025/House Chambers/February 13, 2025_Legislative Session Day 39/1_HouseChambers02-13-2025.mp4",
+          "segments": 4,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 13, 2025_Legislative Session Day 39",
+            "filename": "1_HouseChambers02-13-2025.mp4"
+          }
+        }
+      ],
+      "audio": [
+        {
+          "full_path": "2025/House Chambers/February 10, 2025_Legislative Session Day 36/audio/1_HouseChambers02-10-2025.mp3",
+          "segments": 5,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 10, 2025_Legislative Session Day 36/audio",
+            "filename": "1_HouseChambers02-10-2025.mp3"
+          }
+        },
+        {
+          "full_path": "2025/House Chambers/February 12, 2025_Legislative Session Day 38/audio/1_HouseChambers02-12-2025.mp3",
+          "segments": 5,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 12, 2025_Legislative Session Day 38/audio",
+            "filename": "1_HouseChambers02-12-2025.mp3"
+          }
+        },
+        {
+          "full_path": "2025/House Chambers/February 13, 2025_Legislative Session Day 39/audio/1_HouseChambers02-13-2025.mp3",
+          "segments": 5,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 13, 2025_Legislative Session Day 39/audio",
+            "filename": "1_HouseChambers02-13-2025.mp3"
+          }
+        },
+        {
+          "full_path": "2025/House Chambers/February 14, 2025_Legislative Session Day 40/audio/1_HouseChambers02-14-2025.mp3",
+          "segments": 5,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 14, 2025_Legislative Session Day 40/audio",
+            "filename": "1_HouseChambers02-14-2025.mp3"
+          }
+        },
+        {
+          "full_path": "2025/House Chambers/February 17, 2025_Legislative Session Day 43/audio/1_HouseChambers02-17-2025.mp3",
+          "segments": 5,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 17, 2025_Legislative Session Day 43/audio",
+            "filename": "1_HouseChambers02-17-2025.mp3"
+          }
+        }
+      ],
+      "transcript": [
+        {
+          "full_path": "2025/House Chambers/February 10, 2025_Legislative Session Day 36/audio/1_HouseChambers02-10-2025_transcription.txt",
+          "segments": 5,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 10, 2025_Legislative Session Day 36/audio",
+            "filename": "1_HouseChambers02-10-2025_transcription.txt"
+          }
+        },
+        {
+          "full_path": "2025/House Chambers/February 12, 2025_Legislative Session Day 38/audio/1_HouseChambers02-12-2025_transcription.txt",
+          "segments": 5,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 12, 2025_Legislative Session Day 38/audio",
+            "filename": "1_HouseChambers02-12-2025_transcription.txt"
+          }
+        },
+        {
+          "full_path": "2025/House Chambers/February 13, 2025_Legislative Session Day 39/audio/1_HouseChambers02-13-2025_transcription.txt",
+          "segments": 5,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 13, 2025_Legislative Session Day 39/audio",
+            "filename": "1_HouseChambers02-13-2025_transcription.txt"
+          }
+        },
+        {
+          "full_path": "2025/House Chambers/February 14, 2025_Legislative Session Day 40/audio/1_HouseChambers02-14-2025_transcription.txt",
+          "segments": 5,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 14, 2025_Legislative Session Day 40/audio",
+            "filename": "1_HouseChambers02-14-2025_transcription.txt"
+          }
+        },
+        {
+          "full_path": "2025/House Chambers/February 17, 2025_Legislative Session Day 43/audio/1_HouseChambers02-17-2025_transcription.txt",
+          "segments": 5,
+          "components": {
+            "year": "2025",
+            "category": "House Chambers",
+            "session": "February 17, 2025_Legislative Session Day 43/audio",
+            "filename": "1_HouseChambers02-17-2025_transcription.txt"
+          }
+        }
+      ]
+    },
+    "common_patterns": {
+      "video": "year/category/session/filename",
+      "audio": "year/category/session/filename",
+      "transcript": "year/category/session/filename"
+    }
+  },
+  "statistics": {
+    "total_files": 167,
+    "by_media_type": {
+      "video": 59,
+      "audio": 55,
+      "transcript": 53,
+      "other": 0
+    },
+    "by_year": {
+      "2025": 167
+    },
+    "by_category": {
+      "House Chambers": 164,
+      "Senate Chambers": 3
+    },
+    "total_size_bytes": 41358739480,
+    "total_size_mb": 39442.77,
+    "total_size_gb": 38.52
+  }
+}
