@@ -5,6 +5,11 @@ import axios from 'axios'
 // Define API URLs from environment variables
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
+// Normalize API URL to ensure it ends with /api
+const NORMALIZED_API_URL = API_URL.endsWith('/api') 
+  ? API_URL 
+  : `${API_URL}/api`
+
 // Statistics state
 const stats = ref({
   videos: 0,
@@ -22,13 +27,31 @@ const fetchStats = async () => {
   error.value = null
   
   try {
+    console.log(`Fetching stats from ${NORMALIZED_API_URL}/stats`)
+    
+    // Create an axios instance with appropriate timeout and headers
+    const axiosInstance = axios.create({
+      baseURL: NORMALIZED_API_URL,
+      timeout: 15000,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+    
     // Fetch stats from API
-    const response = await axios.get(`${API_URL}/stats`)
-    stats.value = response.data
-    console.log('Stats loaded:', stats.value)
+    const response = await axiosInstance.get('/stats')
+    
+    if (response.data) {
+      stats.value = response.data
+      console.log('Stats loaded:', stats.value)
+    } else {
+      throw new Error('Invalid API response format')
+    }
   } catch (err) {
     console.error('Error loading stats:', err)
     error.value = 'Failed to load statistics'
+    
     // Use fallback values if API fails
     stats.value = {
       videos: 125,
@@ -54,9 +77,8 @@ onMounted(() => {
       <p class="hero-description">Browse and search through Idaho legislative session videos, audio recordings, and transcripts processed with advanced AI technology.</p>
       
       <div class="hero-actions">
-        <router-link to="/videos" class="btn btn-primary">Explore Videos</router-link>
-        <router-link to="/audio" class="btn btn-secondary">Browse Audio</router-link>
-        <router-link to="/transcripts" class="btn btn-secondary">View Transcripts</router-link>
+        <router-link to="/videos" class="btn btn-primary">Explore Media Library</router-link>
+        <router-link to="/diagnostic" class="btn btn-secondary">View Diagnostics</router-link>
       </div>
     </div>
     
@@ -87,16 +109,16 @@ onMounted(() => {
     <h2 class="section-title">Quick Access</h2>
     <div class="quick-access-grid">
       <router-link to="/videos" class="quick-access-card">
-        <h3>Video Library</h3>
-        <p>Browse all legislative session videos</p>
+        <h3>Media Library</h3>
+        <p>Browse videos, audio recordings, and transcripts</p>
       </router-link>
-      <router-link to="/audio" class="quick-access-card">
-        <h3>Audio Library</h3>
-        <p>Browse all legislative session audio recordings</p>
+      <router-link to="/diagnostic" class="quick-access-card">
+        <h3>Diagnostic</h3>
+        <p>Check API connections and system status</p>
       </router-link>
-      <router-link to="/transcripts" class="quick-access-card">
-        <h3>Transcript Library</h3>
-        <p>Browse all legislative session transcripts</p>
+      <router-link to="/sitemap" class="quick-access-card">
+        <h3>Sitemap</h3>
+        <p>View a complete map of the site's content</p>
       </router-link>
     </div>
   </div>

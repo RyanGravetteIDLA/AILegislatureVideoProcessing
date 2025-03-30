@@ -1,29 +1,51 @@
-# Use an official Python runtime as a parent image
+# Build stage for dependencies
+FROM python:3.11-slim AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements file
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# Final stage
 FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install dependencies
-RUN pip install --no-cache-dir fastapi uvicorn google-cloud-firestore
+# Copy Python dependencies from builder stage
+COPY --from=builder /root/.local /root/.local
 
-# Copy only the necessary files
-COPY src/simple_firestore_api.py ./src/simple_firestore_api.py
-COPY credentials/ ./credentials/
+# Make sure scripts in .local are usable
+ENV PATH=/root/.local/bin:$PATH
 
-# Create logs directory
-RUN mkdir -p data/logs
+# Copy application code
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+COPY data/ ./data/
 
 # Set environment variables
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
-ENV HOST=0.0.0.0
+ENV PYTHONUNBUFFERED=1
 ENV GOOGLE_CLOUD_PROJECT=legislativevideoreviewswithai
-ENV GCS_BUCKET_NAME=legislativevideoreviewswithai.firebasestorage.app
+ENV USE_CLOUD_STORAGE=true
+ENV PREFER_CLOUD_STORAGE=true
+
+# Create a non-root user to run the application
+RUN adduser --disabled-password --gecos "" appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
 # Expose the port
 EXPOSE 8080
 
-# Command to run when container starts
-CMD ["python", "src/simple_firestore_api.py"]
+# Run the app when the container launches
+CMD ["uvicorn", "src.api_firestore:app", "--host", "0.0.0.0", "--port", "8080"]

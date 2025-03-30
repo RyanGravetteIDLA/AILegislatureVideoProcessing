@@ -1,178 +1,332 @@
+#!/usr/bin/env python3
 """
-Database module for tracking transcript processing status.
-Maintains a record of transcripts, their processing status, and upload history.
+Compatibility module for transcript_db that uses Firestore instead of SQLite.
+Maintains the same interface as transcript_db.py but uses Firestore as the backend.
 """
 
 import os
 import logging
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, Float, inspect
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from dataclasses import dataclass
+
+# Local imports
+from firestore_db import get_firestore_db, FirestoreDB
 
 # Set up directory paths
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-logs_dir = os.path.join(base_dir, 'data', 'logs')
-db_dir = os.path.join(base_dir, 'data', 'db')
+logs_dir = os.path.join(base_dir, "data", "logs")
 
 # Create directories if they don't exist
 os.makedirs(logs_dir, exist_ok=True)
-os.makedirs(db_dir, exist_ok=True)
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler(os.path.join(logs_dir, 'transcript_db.log')),
-        logging.StreamHandler()
-    ]
+        logging.FileHandler(os.path.join(logs_dir, "transcript_db_firestore.log")),
+        logging.StreamHandler(),
+    ],
 )
 
-logger = logging.getLogger('transcript_db')
+logger = logging.getLogger("transcript_db_firestore")
 
-# Database setup
-DB_PATH = os.path.join(db_dir, 'transcripts.db')
-engine = create_engine(f'sqlite:///{DB_PATH}')
-Base = declarative_base()
-Session = sessionmaker(bind=engine)
 
-class Transcript(Base):
-    """Model for transcript records in the database."""
-    __tablename__ = 'transcripts'
-    
-    id = Column(Integer, primary_key=True)
-    year = Column(String, nullable=False)
-    category = Column(String, nullable=False)
-    session_name = Column(String, nullable=False)
-    file_name = Column(String, nullable=False)
-    file_path = Column(String, nullable=False, unique=True)
-    file_size = Column(Float, nullable=True)
-    last_modified = Column(DateTime, nullable=True)
-    processed = Column(Boolean, default=False)
-    uploaded = Column(Boolean, default=False)
-    upload_path = Column(String, nullable=True)
-    upload_date = Column(DateTime, nullable=True)
-    error_message = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    
-    def __repr__(self):
-        return f"<Transcript(path='{self.file_path}', processed={self.processed}, uploaded={self.uploaded})>"
+@dataclass
+class Transcript:
+    """Compatibility class for SQLite Transcript model."""
+
+    id: str
+    year: str
+    category: str
+    session_name: str
+    file_name: str
+    file_path: str
+    file_size: float = None
+    last_modified: datetime = None
+    processed: bool = False
+    uploaded: bool = False
+    upload_path: str = None
+    upload_date: datetime = None
+    error_message: str = None
+    created_at: datetime = None
+    updated_at: datetime = None
 
 
 def init_db():
-    """Initialize the database if it doesn't exist."""
-    if not os.path.exists(DB_PATH) or not inspect(engine).has_table(Transcript.__tablename__):
-        logger.info(f"Creating transcript database at {DB_PATH}")
-        Base.metadata.create_all(engine)
-    else:
-        logger.info(f"Using existing transcript database at {DB_PATH}")
+    """Initialize the database (no-op for Firestore)."""
+    logger.info("Using Firestore database (compatibility mode)")
+    return True
+
+
+def firestore_doc_to_transcript(doc_data):
+    """Convert a Firestore document to a Transcript object."""
+    return Transcript(
+        id=doc_data.get("_id", ""),
+        year=doc_data.get("year", ""),
+        category=doc_data.get("category", ""),
+        session_name=doc_data.get("session_name", ""),
+        file_name=doc_data.get("file_name", ""),
+        file_path=doc_data.get("original_path", "") or doc_data.get("file_path", ""),
+        file_size=doc_data.get("file_size"),
+        last_modified=doc_data.get("last_modified"),
+        processed=doc_data.get("processed", False),
+        uploaded=doc_data.get("uploaded", False),
+        upload_path=doc_data.get("upload_path"),
+        upload_date=doc_data.get("upload_date"),
+        error_message=doc_data.get("error_message"),
+        created_at=doc_data.get("created_at", datetime.now()),
+        updated_at=doc_data.get(
+            "updated_at", doc_data.get("created_at", datetime.now())
+        ),
+    )
 
 
 def get_transcript_by_path(file_path):
     """Get a transcript record by its file path."""
-    session = Session()
+    db = get_firestore_db()
     try:
-        return session.query(Transcript).filter_by(file_path=file_path).first()
-    finally:
-        session.close()
+        # Search in all collections
+        for collection in ["transcripts", "audio", "videos", "other"]:
+            docs = list(
+                db.client.collection(collection)
+                .where("original_path", "==", file_path)
+                .limit(1)
+                .stream()
+            )
+
+            if docs:
+                doc = docs[0]
+                doc_data = doc.to_dict()
+                doc_data["_id"] = doc.id
+                doc_data["_collection"] = collection
+                return firestore_doc_to_transcript(doc_data)
+    except Exception as e:
+        logger.error(f"Error getting transcript by path {file_path}: {e}")
+
+    return None
 
 
-def add_transcript(year, category, session_name, file_name, file_path, file_size=None, last_modified=None):
+def add_transcript(
+    year,
+    category,
+    session_name,
+    file_name,
+    file_path,
+    file_size=None,
+    last_modified=None,
+):
     """Add a new transcript to the database."""
-    session = Session()
+    db = get_firestore_db()
     try:
         # Check if transcript already exists
-        existing = session.query(Transcript).filter_by(file_path=file_path).first()
+        existing = get_transcript_by_path(file_path)
         if existing:
             logger.debug(f"Transcript already exists: {file_path}")
             return existing
-        
-        # Create new transcript record
-        transcript = Transcript(
-            year=year,
-            category=category,
-            session_name=session_name,
-            file_name=file_name,
-            file_path=file_path,
-            file_size=file_size,
-            last_modified=last_modified,
-            processed=False,
-            uploaded=False
+
+        # Determine media type based on file extension
+        file_ext = os.path.splitext(file_path)[1].lower()
+
+        if file_ext in [".mp4", ".avi", ".mov"]:
+            media_type = "video"
+            collection = "videos"
+        elif file_ext in [".mp3", ".wav", ".m4a"]:
+            media_type = "audio"
+            collection = "audio"
+        elif file_ext in [".txt", ".pdf", ".docx", ".md"]:
+            media_type = "transcript"
+            collection = "transcripts"
+        else:
+            media_type = "unknown"
+            collection = "other"
+
+        # Generate consistent document ID
+        doc_id = f"{year}_{category}_{session_name}_{media_type}_{os.path.basename(file_path)}"
+        # Clean ID to make it Firestore-friendly
+        doc_id = (
+            doc_id.replace("/", "_").replace(" ", "_").replace("(", "").replace(")", "")
         )
-        session.add(transcript)
-        session.commit()
-        logger.info(f"Added new transcript: {file_path}")
-        return transcript
+
+        # Create document data
+        doc_data = {
+            "year": year,
+            "category": category,
+            "session_name": session_name,
+            "file_name": file_name,
+            "original_path": file_path,
+            "file_path": file_path,  # For compatibility
+            "file_size": file_size,
+            "last_modified": last_modified,
+            "processed": False,
+            "uploaded": False,
+            "media_type": media_type,
+            "created_at": datetime.now(),
+            "updated_at": datetime.now(),
+        }
+
+        # Add the document to Firestore
+        doc_ref = db.client.collection(collection).document(doc_id)
+        doc_ref.set(doc_data)
+        logger.info(f"Added new transcript to Firestore: {file_path}")
+
+        # Add ID for return
+        doc_data["_id"] = doc_id
+        doc_data["_collection"] = collection
+
+        return firestore_doc_to_transcript(doc_data)
+
     except Exception as e:
-        session.rollback()
         logger.error(f"Error adding transcript {file_path}: {e}")
         raise
-    finally:
-        session.close()
 
 
-def update_transcript_status(file_path, processed=None, uploaded=None, upload_path=None, error_message=None):
+def update_transcript_status(
+    file_path, processed=None, uploaded=None, upload_path=None, error_message=None
+):
     """Update the status of a transcript."""
-    session = Session()
+    db = get_firestore_db()
     try:
-        transcript = session.query(Transcript).filter_by(file_path=file_path).first()
+        # Find the transcript by file path
+        transcript = get_transcript_by_path(file_path)
         if not transcript:
             logger.warning(f"Transcript not found for update: {file_path}")
             return None
-        
+
+        # Prepare update data
+        update_data = {}
+
         if processed is not None:
-            transcript.processed = processed
-        
+            update_data["processed"] = processed
+
         if uploaded is not None:
-            transcript.uploaded = uploaded
+            update_data["uploaded"] = uploaded
             if uploaded:
-                transcript.upload_date = datetime.now()
-        
+                update_data["upload_date"] = datetime.now()
+
         if upload_path is not None:
-            transcript.upload_path = upload_path
-            
+            update_data["upload_path"] = upload_path
+
         if error_message is not None:
-            transcript.error_message = error_message
-            
-        session.commit()
-        logger.info(f"Updated transcript status: {file_path} (processed={processed}, uploaded={uploaded})")
-        return transcript
+            update_data["error_message"] = error_message
+
+        # Add updated timestamp
+        update_data["updated_at"] = datetime.now()
+
+        # Determine collection
+        if hasattr(transcript, "_collection") and transcript._collection:
+            collection = transcript._collection
+        else:
+            # Determine collection based on file extension
+            file_ext = os.path.splitext(file_path)[1].lower()
+            if file_ext in [".mp4", ".avi", ".mov"]:
+                collection = "videos"
+            elif file_ext in [".mp3", ".wav", ".m4a"]:
+                collection = "audio"
+            elif file_ext in [".txt", ".pdf", ".docx", ".md"]:
+                collection = "transcripts"
+            else:
+                collection = "other"
+
+        # Update the document in Firestore
+        if hasattr(transcript, "id") and transcript.id:
+            doc_ref = db.client.collection(collection).document(transcript.id)
+            doc_ref.update(update_data)
+            logger.info(f"Updated transcript status in Firestore: {file_path}")
+
+            # Update the transcript object for return
+            for key, value in update_data.items():
+                setattr(transcript, key, value)
+
+            return transcript
+        else:
+            logger.warning(f"Could not update transcript, no ID found: {file_path}")
+            return None
+
     except Exception as e:
-        session.rollback()
         logger.error(f"Error updating transcript {file_path}: {e}")
         raise
-    finally:
-        session.close()
 
 
 def get_unprocessed_transcripts():
     """Get all transcripts that haven't been processed yet."""
-    session = Session()
+    db = get_firestore_db()
+    results = []
+
     try:
-        return session.query(Transcript).filter_by(processed=False).all()
-    finally:
-        session.close()
+        # Get unprocessed docs from each collection
+        for collection in ["transcripts", "audio", "videos", "other"]:
+            docs = list(
+                db.client.collection(collection)
+                .where("processed", "==", False)
+                .stream()
+            )
+
+            for doc in docs:
+                doc_data = doc.to_dict()
+                doc_data["_id"] = doc.id
+                doc_data["_collection"] = collection
+                results.append(firestore_doc_to_transcript(doc_data))
+
+    except Exception as e:
+        logger.error(f"Error getting unprocessed transcripts: {e}")
+
+    return results
 
 
 def get_processed_not_uploaded_transcripts():
     """Get all transcripts that have been processed but not uploaded."""
-    session = Session()
+    db = get_firestore_db()
+    results = []
+
     try:
-        return session.query(Transcript).filter_by(processed=True, uploaded=False).all()
-    finally:
-        session.close()
+        # Get processed but not uploaded docs from each collection
+        for collection in ["transcripts", "audio", "videos", "other"]:
+            docs = list(
+                db.client.collection(collection)
+                .where("processed", "==", True)
+                .where("uploaded", "==", False)
+                .stream()
+            )
+
+            for doc in docs:
+                doc_data = doc.to_dict()
+                doc_data["_id"] = doc.id
+                doc_data["_collection"] = collection
+                results.append(firestore_doc_to_transcript(doc_data))
+
+    except Exception as e:
+        logger.error(f"Error getting processed not uploaded transcripts: {e}")
+
+    return results
 
 
 def get_all_transcripts():
     """Get all transcript records."""
-    session = Session()
+    db = get_firestore_db()
+    results = []
+
     try:
-        return session.query(Transcript).all()
-    finally:
-        session.close()
+        # Get all docs from each collection
+        for collection in ["transcripts", "audio", "videos", "other"]:
+            docs = list(db.client.collection(collection).stream())
+
+            for doc in docs:
+                doc_data = doc.to_dict()
+                doc_data["_id"] = doc.id
+                doc_data["_collection"] = collection
+                results.append(firestore_doc_to_transcript(doc_data))
+
+    except Exception as e:
+        logger.error(f"Error getting all transcripts: {e}")
+
+    return results
 
 
 # Initialize the database when this module is imported
 init_db()
+
+if __name__ == "__main__":
+    # Test the module
+    print("Testing transcript_db_firestore compatibility module")
+    print(f"Found {len(get_all_transcripts())} transcripts in Firestore")

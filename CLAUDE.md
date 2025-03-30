@@ -41,6 +41,24 @@ To test locally, make sure the GOOGLE_APPLICATION_CREDENTIALS environment variab
 export GOOGLE_APPLICATION_CREDENTIALS="/path/to/credentials/legislativevideoreviewswithai-80ed70b021b5.json"
 ```
 
+## Recommended Code Quality Checks
+
+Before deploying, run these commands to ensure code quality:
+
+```bash
+# Format Python code
+python -m pip install black
+black src/
+
+# Run Python linting
+python -m pip install flake8
+flake8 src/
+
+# Update dependencies
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
 ## Troubleshooting Authentication Issues
 
 If you're experiencing authentication issues with Google Cloud services:

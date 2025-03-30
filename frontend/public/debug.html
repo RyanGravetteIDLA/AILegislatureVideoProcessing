@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Idaho Legislature Media - Debug Tool</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+    h1, h2 {
+      margin-top: 0;
+    }
+    .btn {
+      background-color: #486581;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .btn:hover {
+      background-color: #334e68;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow: auto;
+      max-height: 400px;
+      white-space: pre-wrap;
+    }
+    .error {
+      color: #e53e3e;
+    }
+    .success {
+      color: #38a169;
+    }
+    .warning {
+      color: #dd6b20;
+    }
+    .flex {
+      display: flex;
+      gap: 10px;
+    }
+    .console-output {
+      height: 200px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      background-color: #1e1e1e;
+      color: #f0f0f0;
+      padding: 10px;
+      font-family: monospace;
+      border-radius: 4px;
+    }
+    .log-item {
+      margin: 3px 0;
+      border-bottom: 1px solid #333;
+      padding-bottom: 3px;
+    }
+    .log-error { color: #f56565; }
+    .log-warn { color: #ed8936; }
+    .log-info { color: #4299e1; }
+    .test-section {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Idaho Legislature Media - Debug Tool</h1>
+      <p>This tool can help diagnose issues with the application.</p>
+    </div>
+
+    <div class="card">
+      <h2>Browser Information</h2>
+      <div id="browser-info">Loading...</div>
+    </div>
+
+    <div class="card">
+      <h2>Console Output</h2>
+      <div class="console-output" id="console-output"></div>
+      <button class="btn" onclick="clearConsole()">Clear Console</button>
+    </div>
+
+    <div class="card">
+      <h2>Network Tests</h2>
+      <div class="flex">
+        <button class="btn" onclick="testAPI('/api/health')">Test API Health</button>
+        <button class="btn" onclick="testAPI('/api/videos')">Test Videos API</button>
+        <button class="btn" onclick="testCORS()">Test CORS</button>
+      </div>
+      <div id="network-results"></div>
+    </div>
+
+    <div class="card">
+      <h2>Storage Tests</h2>
+      <div class="flex">
+        <button class="btn" onclick="testStorage()">Test Storage Access</button>
+      </div>
+      <div id="storage-results"></div>
+    </div>
+
+    <div class="card">
+      <h2>Vue Router Tests</h2>
+      <div class="flex">
+        <button class="btn" onclick="testNavigation('/videos')">Test Videos Route</button>
+        <button class="btn" onclick="testNavigation('/audio')">Test Audio Route</button>
+        <button class="btn" onclick="testNavigation('/transcripts')">Test Transcripts Route</button>
+      </div>
+      <div id="router-results"></div>
+    </div>
+
+    <div class="card">
+      <h2>Troubleshooting Actions</h2>
+      <div class="flex">
+        <button class="btn" onclick="clearCache()">Clear Browser Cache</button>
+        <button class="btn" onclick="clearLocalStorage()">Clear Local Storage</button>
+      </div>
+      <p id="troubleshoot-result"></p>
+    </div>
+  </div>
+
+  <script>
+    // Capture console output
+    const consoleOutput = document.getElementById('console-output');
+    const originalConsole = {
+      log: console.log,
+      warn: console.warn,
+      error: console.error,
+      info: console.info
+    };
+
+    // Override console methods
+    console.log = function() {
+      originalConsole.log.apply(console, arguments);
+      addToConsoleOutput('log', arguments);
+    };
+    console.warn = function() {
+      originalConsole.warn.apply(console, arguments);
+      addToConsoleOutput('warn', arguments);
+    };
+    console.error = function() {
+      originalConsole.error.apply(console, arguments);
+      addToConsoleOutput('error', arguments);
+    };
+    console.info = function() {
+      originalConsole.info.apply(console, arguments);
+      addToConsoleOutput('info', arguments);
+    };
+
+    function addToConsoleOutput(type, args) {
+      const item = document.createElement('div');
+      item.className = `log-item log-${type}`;
+      
+      const timestamp = new Date().toLocaleTimeString();
+      const prefix = `[${timestamp}] [${type.toUpperCase()}]: `;
+      
+      // Format the arguments
+      const formattedArgs = Array.from(args).map(arg => {
+        if (typeof arg === 'object') {
+          try {
+            return JSON.stringify(arg);
+          } catch (e) {
+            return String(arg);
+          }
+        }
+        return String(arg);
+      }).join(' ');
+      
+      item.textContent = prefix + formattedArgs;
+      consoleOutput.appendChild(item);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+
+    function clearConsole() {
+      consoleOutput.innerHTML = '';
+    }
+
+    // Display browser information
+    function getBrowserInfo() {
+      const browserInfo = document.getElementById('browser-info');
+      const info = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        cookiesEnabled: navigator.cookieEnabled,
+        screenSize: `${window.screen.width}×${window.screen.height}`,
+        windowSize: `${window.innerWidth}×${window.innerHeight}`,
+        pixelRatio: window.devicePixelRatio,
+        localStorage: !!window.localStorage,
+        sessionStorage: !!window.sessionStorage,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      };
+      
+      let html = '<ul>';
+      for (const [key, value] of Object.entries(info)) {
+        html += `<li><strong>${key}:</strong> ${value}</li>`;
+      }
+      html += '</ul>';
+      
+      browserInfo.innerHTML = html;
+    }
+
+    // Test API endpoints
+    async function testAPI(endpoint) {
+      const resultElement = document.getElementById('network-results');
+      resultElement.innerHTML = `<p>Testing ${endpoint}...</p>`;
+      
+      try {
+        // Determine if we need to add the base URL
+        let url = endpoint;
+        if (!url.startsWith('http')) {
+          // Get from environment or default
+          const baseUrl = 'https://media-portal-backend-335217295357.us-west1.run.app';
+          url = `${baseUrl}${endpoint}`;
+        }
+        
+        console.log(`Making request to: ${url}`);
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        resultElement.innerHTML = `
+          <p class="success">✅ API endpoint ${endpoint} is working</p>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        console.error('API test error:', error);
+        resultElement.innerHTML = `
+          <p class="error">❌ API endpoint ${endpoint} failed</p>
+          <pre class="error">${error.message}</pre>
+        `;
+      }
+    }
+
+    // Test CORS
+    async function testCORS() {
+      const resultElement = document.getElementById('network-results');
+      resultElement.innerHTML = '<p>Testing CORS...</p>';
+      
+      try {
+        const baseUrl = 'https://media-portal-backend-335217295357.us-west1.run.app';
+        const response = await fetch(`${baseUrl}/api/health`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Origin': window.location.origin
+          }
+        });
+        
+        const data = await response.json();
+        const corsHeaders = {
+          'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+          'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+          'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers')
+        };
+        
+        resultElement.innerHTML = `
+          <p class="success">✅ CORS is properly configured</p>
+          <p>CORS Headers:</p>
+          <pre>${JSON.stringify(corsHeaders, null, 2)}</pre>
+          <p>Response Data:</p>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        console.error('CORS test error:', error);
+        resultElement.innerHTML = `
+          <p class="error">❌ CORS test failed</p>
+          <pre class="error">${error.message}</pre>
+        `;
+      }
+    }
+
+    // Test storage access
+    async function testStorage() {
+      const resultElement = document.getElementById('storage-results');
+      resultElement.innerHTML = '<p>Testing storage access...</p>';
+      
+      try {
+        const storageUrl = 'https://storage.googleapis.com/legislativevideoreviewswithai.firebasestorage.app';
+        const response = await fetch(storageUrl);
+        
+        if (response.ok) {
+          resultElement.innerHTML = `
+            <p class="success">✅ Storage bucket is accessible</p>
+            <p>Response status: ${response.status}</p>
+          `;
+        } else {
+          resultElement.innerHTML = `
+            <p class="warning">⚠️ Storage access may be limited</p>
+            <p>Response status: ${response.status}</p>
+          `;
+        }
+      } catch (error) {
+        console.error('Storage test error:', error);
+        resultElement.innerHTML = `
+          <p class="error">❌ Storage access failed</p>
+          <pre class="error">${error.message}</pre>
+        `;
+      }
+    }
+
+    // Test navigation
+    function testNavigation(route) {
+      const resultElement = document.getElementById('router-results');
+      resultElement.innerHTML = `<p>Testing navigation to ${route}...</p>`;
+      
+      try {
+        const testFrame = document.createElement('iframe');
+        testFrame.style.width = '1px';
+        testFrame.style.height = '1px';
+        testFrame.style.opacity = '0.01';
+        testFrame.style.position = 'absolute';
+        testFrame.style.pointerEvents = 'none';
+        testFrame.onload = () => {
+          try {
+            const pageTitle = testFrame.contentDocument?.title || 'No title found';
+            resultElement.innerHTML = `
+              <p class="success">✅ Navigation to ${route} worked</p>
+              <p>Page title: ${pageTitle}</p>
+            `;
+          } catch (e) {
+            resultElement.innerHTML = `
+              <p class="warning">⚠️ Navigation loaded but couldn't read contents (likely CORS)</p>
+            `;
+          }
+          // Remove the iframe after a short while
+          setTimeout(() => testFrame.remove(), 2000);
+        };
+        testFrame.onerror = (e) => {
+          resultElement.innerHTML = `
+            <p class="error">❌ Navigation to ${route} failed</p>
+            <pre class="error">${e.message}</pre>
+          `;
+          testFrame.remove();
+        };
+        
+        // Append iframe to body
+        testFrame.src = route;
+        document.body.appendChild(testFrame);
+      } catch (error) {
+        console.error('Navigation test error:', error);
+        resultElement.innerHTML = `
+          <p class="error">❌ Navigation test failed</p>
+          <pre class="error">${error.message}</pre>
+        `;
+      }
+    }
+
+    // Clear browser cache
+    function clearCache() {
+      const resultElement = document.getElementById('troubleshoot-result');
+      
+      try {
+        // Clear application cache if available
+        if (window.applicationCache) {
+          window.applicationCache.swapCache();
+        }
+        
+        // Force reload from server
+        const message = 'This will refresh the page and clear the cache. Continue?';
+        if (confirm(message)) {
+          window.location.reload(true);
+        } else {
+          resultElement.innerHTML = `<p class="warning">Cache clear cancelled</p>`;
+        }
+      } catch (error) {
+        console.error('Cache clear error:', error);
+        resultElement.innerHTML = `
+          <p class="error">❌ Failed to clear cache</p>
+          <pre class="error">${error.message}</pre>
+        `;
+      }
+    }
+
+    // Clear local storage
+    function clearLocalStorage() {
+      const resultElement = document.getElementById('troubleshoot-result');
+      
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        resultElement.innerHTML = `<p class="success">✅ Local storage cleared successfully</p>`;
+      } catch (error) {
+        console.error('Local storage clear error:', error);
+        resultElement.innerHTML = `
+          <p class="error">❌ Failed to clear local storage</p>
+          <pre class="error">${error.message}</pre>
+        `;
+      }
+    }
+
+    // Initialize
+    window.onload = function() {
+      getBrowserInfo();
+      console.log('Debug tool initialized');
+    };
+  </script>
+</body>
+</html>

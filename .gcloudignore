@@ -1,0 +1,30 @@
+# .gcloudignore file
+# Exclude large directories and unnecessary files
+
+# Git related
+.git
+.gitignore
+.github-config.sample
+
+# Python virtual environment
+venv/
+*.pyc
+__pycache__/
+
+# Development and data directories
+data/downloads/
+frontend/
+simple-vue/
+
+# Development files
+*.md
+*.txt
+!requirements.txt
+*.bat
+*.sh
+**/test_*
+**/tests/
+
+# Don't ignore these critical directories
+!credentials/
+!src/

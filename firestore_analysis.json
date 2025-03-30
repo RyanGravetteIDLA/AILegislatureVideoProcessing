@@ -1,0 +1,700 @@
+{
+  "test_results": {
+    "firestore_connection": true,
+    "collection_structure": {
+      "passed": false,
+      "expected": [
+        "videos",
+        "audio",
+        "transcripts",
+        "other"
+      ],
+      "found": [
+        "videos",
+        "audio",
+        "transcripts"
+      ]
+    }
+  },
+  "collections": {
+    "videos": {
+      "exists": true,
+      "count": 1
+    },
+    "audio": {
+      "exists": true,
+      "count": 1
+    },
+    "transcripts": {
+      "exists": true,
+      "count": 1
+    },
+    "other": {
+      "exists": true,
+      "count": 0
+    }
+  },
+  "sample_documents": {
+    "videos": {
+      "id": "0a7LLzzjrpODHqHdAxOX",
+      "data": {
+        "created_at": "2025-03-28T22:45:46.718826+00:00",
+        "year": "2025",
+        "session_id": "2025_House_Chambers_260ce15f",
+        "gcs_path": "2025/House Chambers/January 24, 2025_Legislative Session Day 19/1_HouseChambers01-24-2025.mp4",
+        "media_type": "video",
+        "related_audio_path": "2025/House Chambers/January 24, 2025_Legislative Session Day 19/audio/1_HouseChambers01-24-2025.mp3",
+        "updated_at": "2025-03-29T17:09:03.537014+00:00",
+        "related_transcript_id": "9Jov3hoPyYCLCWNNx0d1",
+        "original_path": "data/downloads/2025/House Chambers/January 24, 2025_Legislative Session Day 19/1_HouseChambers01-24-2025.mp4",
+        "related_transcript_path": "2025/House Chambers/January 24, 2025_Legislative Session Day 19/audio/1_HouseChambers01-24-2025_transcription.txt",
+        "related_audio_id": "060OpFE1lpQGejL0f8sU",
+        "related_transcript_url": "",
+        "category": "House Chambers",
+        "uploaded": true,
+        "last_modified": "2025-03-28T22:45:46.718825+00:00",
+        "file_name": "1_HouseChambers01-24-2025.mp4",
+        "processed": true,
+        "session_name": "January 24, 2025_Legislative Session Day 19",
+        "related_audio_url": ""
+      }
+    },
+    "audio": {
+      "id": "060OpFE1lpQGejL0f8sU",
+      "data": {
+        "related_video_id": "0a7LLzzjrpODHqHdAxOX",
+        "year": "2025",
+        "session_id": "2025_House_Chambers_260ce15f",
+        "gcs_path": "2025/House Chambers/January 24, 2025_Legislative Session Day 19/audio/1_HouseChambers01-24-2025.mp3",
+        "created_at": "2025-03-28T22:49:29.890857+00:00",
+        "media_type": "audio",
+        "updated_at": "2025-03-28T22:51:10.799803+00:00",
+        "related_transcript_id": "5XlNcnBQxeoGqQsu4bTv",
+        "original_path": "data/downloads/2025/House Chambers/January 24, 2025_Legislative Session Day 19/audio/1_HouseChambers01-24-2025.mp3",
+        "related_transcript_path": "2025/House Chambers/January 8, 2025_Legislative Session Day 3/audio/1_HouseChambers01-08-2025_transcription.txt",
+        "related_transcript_url": "",
+        "category": "House Chambers",
+        "uploaded": true,
+        "last_modified": "2025-03-28T22:49:29.890856+00:00",
+        "file_name": "1_HouseChambers01-24-2025.mp3",
+        "processed": true,
+        "session_name": "January 24, 2025_Legislative Session Day 19"
+      }
+    },
+    "transcripts": {
+      "id": "0LQMbvFUpWcHFBKTyxbz",
+      "data": {
+        "related_video_id": "0a7LLzzjrpODHqHdAxOX",
+        "year": "2025",
+        "session_id": "2025_House_Chambers_260ce15f",
+        "gcs_path": "2025/House Chambers/February 6, 2025_Legislative Session Day 32/audio/1_HouseChambers02-06-2025_transcription.txt",
+        "created_at": "2025-03-28T22:50:42.164793+00:00",
+        "media_type": "transcript",
+        "updated_at": "2025-03-28T22:50:42.164793+00:00",
+        "original_path": "data/downloads/2025/House Chambers/February 6, 2025_Legislative Session Day 32/audio/1_HouseChambers02-06-2025_transcription.txt",
+        "related_audio_id": "060OpFE1lpQGejL0f8sU",
+        "category": "House Chambers",
+        "uploaded": true,
+        "last_modified": "2025-03-28T22:50:42.164791+00:00",
+        "file_name": "1_HouseChambers02-06-2025_transcription.txt",
+        "processed": true,
+        "session_name": "February 6, 2025_Legislative Session Day 32"
+      }
+    },
+    "other": null
+  },
+  "field_frequencies": {
+    "videos": {
+      "total_documents": 65,
+      "fields": {
+        "created_at": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "year": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "session_id": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "gcs_path": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "media_type": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "related_audio_path": {
+          "count": 2,
+          "percentage": 3.08
+        },
+        "updated_at": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "related_transcript_id": {
+          "count": 2,
+          "percentage": 3.08
+        },
+        "original_path": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "related_transcript_path": {
+          "count": 2,
+          "percentage": 3.08
+        },
+        "related_audio_id": {
+          "count": 2,
+          "percentage": 3.08
+        },
+        "related_transcript_url": {
+          "count": 2,
+          "percentage": 3.08
+        },
+        "category": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "uploaded": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "last_modified": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "file_name": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "processed": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "session_name": {
+          "count": 65,
+          "percentage": 100.0
+        },
+        "related_audio_url": {
+          "count": 2,
+          "percentage": 3.08
+        }
+      }
+    },
+    "audio": {
+      "total_documents": 55,
+      "fields": {
+        "related_video_id": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "year": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "session_id": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "gcs_path": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "created_at": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "media_type": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "updated_at": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "related_transcript_id": {
+          "count": 2,
+          "percentage": 3.64
+        },
+        "original_path": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "related_transcript_path": {
+          "count": 2,
+          "percentage": 3.64
+        },
+        "related_transcript_url": {
+          "count": 2,
+          "percentage": 3.64
+        },
+        "category": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "uploaded": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "last_modified": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "file_name": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "processed": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "session_name": {
+          "count": 55,
+          "percentage": 100.0
+        }
+      }
+    },
+    "transcripts": {
+      "total_documents": 53,
+      "fields": {
+        "related_video_id": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "year": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "session_id": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "gcs_path": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "created_at": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "media_type": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "updated_at": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "original_path": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "related_audio_id": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "category": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "uploaded": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "last_modified": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "file_name": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "processed": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "session_name": {
+          "count": 53,
+          "percentage": 100.0
+        }
+      }
+    },
+    "other": null
+  },
+  "relationships": {
+    "videos": {
+      "total_documents": 65,
+      "relationships": {
+        "related_audio_id": {
+          "count": 2,
+          "percentage": 3.08
+        },
+        "related_transcript_id": {
+          "count": 2,
+          "percentage": 3.08
+        }
+      }
+    },
+    "audio": {
+      "total_documents": 55,
+      "relationships": {
+        "related_video_id": {
+          "count": 55,
+          "percentage": 100.0
+        },
+        "related_transcript_id": {
+          "count": 2,
+          "percentage": 3.64
+        }
+      }
+    },
+    "transcripts": {
+      "total_documents": 53,
+      "relationships": {
+        "related_video_id": {
+          "count": 53,
+          "percentage": 100.0
+        },
+        "related_audio_id": {
+          "count": 53,
+          "percentage": 100.0
+        }
+      }
+    }
+  },
+  "schema": {
+    "videos": {
+      "created_at": {
+        "types": [
+          "datetime"
+        ],
+        "required": true
+      },
+      "year": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "session_id": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "gcs_path": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "media_type": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "related_audio_path": {
+        "types": [
+          "string"
+        ],
+        "required": false
+      },
+      "updated_at": {
+        "types": [
+          "datetime"
+        ],
+        "required": true
+      },
+      "related_transcript_id": {
+        "types": [
+          "string"
+        ],
+        "required": false
+      },
+      "original_path": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "related_transcript_path": {
+        "types": [
+          "string"
+        ],
+        "required": false
+      },
+      "related_audio_id": {
+        "types": [
+          "string"
+        ],
+        "required": false
+      },
+      "related_transcript_url": {
+        "types": [
+          "string"
+        ],
+        "required": false
+      },
+      "category": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "uploaded": {
+        "types": [
+          "boolean"
+        ],
+        "required": true
+      },
+      "last_modified": {
+        "types": [
+          "datetime"
+        ],
+        "required": true
+      },
+      "file_name": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "processed": {
+        "types": [
+          "boolean"
+        ],
+        "required": true
+      },
+      "session_name": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "related_audio_url": {
+        "types": [
+          "string"
+        ],
+        "required": false
+      }
+    },
+    "audio": {
+      "related_video_id": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "year": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "session_id": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "gcs_path": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "created_at": {
+        "types": [
+          "datetime"
+        ],
+        "required": true
+      },
+      "media_type": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "updated_at": {
+        "types": [
+          "datetime"
+        ],
+        "required": true
+      },
+      "related_transcript_id": {
+        "types": [
+          "string"
+        ],
+        "required": false
+      },
+      "original_path": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "related_transcript_path": {
+        "types": [
+          "string"
+        ],
+        "required": false
+      },
+      "related_transcript_url": {
+        "types": [
+          "string"
+        ],
+        "required": false
+      },
+      "category": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "uploaded": {
+        "types": [
+          "boolean"
+        ],
+        "required": true
+      },
+      "last_modified": {
+        "types": [
+          "datetime"
+        ],
+        "required": true
+      },
+      "file_name": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "processed": {
+        "types": [
+          "boolean"
+        ],
+        "required": true
+      },
+      "session_name": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      }
+    },
+    "transcripts": {
+      "related_video_id": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "year": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "session_id": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "gcs_path": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "created_at": {
+        "types": [
+          "datetime"
+        ],
+        "required": true
+      },
+      "media_type": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "updated_at": {
+        "types": [
+          "datetime"
+        ],
+        "required": true
+      },
+      "original_path": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "related_audio_id": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "category": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "uploaded": {
+        "types": [
+          "boolean"
+        ],
+        "required": true
+      },
+      "last_modified": {
+        "types": [
+          "datetime"
+        ],
+        "required": true
+      },
+      "file_name": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      },
+      "processed": {
+        "types": [
+          "boolean"
+        ],
+        "required": true
+      },
+      "session_name": {
+        "types": [
+          "string"
+        ],
+        "required": true
+      }
+    },
+    "other": null
+  },
+  "statistics": {
+    "total": 173,
+    "videos": 65,
+    "audio": 55,
+    "transcripts": 53,
+    "other": 0
+  },
+  "filters": {
+    "years": [
+      "2025"
+    ],
+    "categories": [
+      "House Chambers",
+      "Senate Chambers"
+    ]
+  }
+}
