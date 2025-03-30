@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "predeploy": [
+      "echo 'Running predeploy script...'"
+    ],
+    "source": ".",
+    "runtime": "python311"
+  }
+}

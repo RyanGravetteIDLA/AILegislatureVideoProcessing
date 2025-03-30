@@ -8,34 +8,36 @@ export GOOGLE_APPLICATION_CREDENTIALS="credentials/legislativevideoreviewswithai
 export GCS_BUCKET_NAME="legislativevideoreviewswithai.appspot.com"
 export GOOGLE_CLOUD_PROJECT="legislativevideoreviewswithai"
 
+# Check if firebase-tools is installed
+if ! command -v firebase &> /dev/null; then
+    echo "Firebase CLI not found. Please install it with 'npm install -g firebase-tools'."
+    exit 1
+fi
+
+# Check if user is logged in
+LOGGED_IN=$(firebase projects:list 2>&1 | grep -c "legislativevideoreviewswithai")
+if [ $LOGGED_IN -eq 0 ]; then
+    echo "You need to login to Firebase first. Run 'firebase login'."
+    firebase login
+fi
+
 # Navigate to functions directory
 cd "$(dirname "$0")/functions"
 echo "Working in $(pwd)"
 
-# Deploy the function using gcloud for more control
-echo "Deploying Cloud Function using gcloud..."
-gcloud functions deploy media_portal_api \
-  --gen2 \
-  --runtime=python311 \
-  --region=us-central1 \
-  --source=. \
-  --entry-point=media_portal_api \
-  --trigger-http \
-  --allow-unauthenticated \
-  --memory=256MB \
-  --project=$GOOGLE_CLOUD_PROJECT
+# Deploy the function using Firebase CLI
+echo "Deploying Cloud Function using Firebase CLI..."
+firebase use legislativevideoreviewswithai
+firebase deploy --only functions
 
 # Check deployment status
 if [ $? -eq 0 ]; then
     echo "✅ Cloud Function deployed successfully!"
     
-    # Get the function URL
-    FUNCTION_URL=$(gcloud functions describe media_portal_api --gen2 --region=us-central1 --format="value(serviceConfig.uri)")
-    echo "Function URL: $FUNCTION_URL"
-    
     # Test the function
     echo "Testing the function..."
-    curl -s "$FUNCTION_URL/health" | jq .
+    FUNCTION_URL="https://us-central1-legislativevideoreviewswithai.cloudfunctions.net/media_portal_api"
+    curl -s "$FUNCTION_URL/health" || echo "Function is not yet accessible. It may take a few minutes to fully deploy."
 else
     echo "❌ Function deployment failed. Please check the logs above."
 fi
